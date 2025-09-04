@@ -1,0 +1,16 @@
+---
+NamespaceIndentation: All
+SortIncludes: CaseSensitive
+AlignConsecutiveMacros:
+  Enabled: true
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+SpaceBeforeCpp11BracedList: true
+BreakBeforeBraces: Allman
+TabWidth: 4
+IndentWidth: 4
+PointerAlignment: Left
+InsertNewlineAtEOF: true
+
