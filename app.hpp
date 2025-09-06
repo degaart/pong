@@ -55,7 +55,6 @@ class App
     double _fpsTimer;
     int _frames;
     int _fps;
-    Entity* _shit;
     int _scores[2];
 
     void onUpdate();

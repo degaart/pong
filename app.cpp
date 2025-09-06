@@ -6,8 +6,7 @@
 
 App::App()
     : _window(nullptr), _renderer(nullptr), _prevTime(0.0), _lag(0.0),
-      _theta(0.0f), _fpsTimer(0.0), _frames(0), _fps(0), _shit(nullptr),
-      _scores {0,0}
+      _theta(0.0f), _fpsTimer(0.0), _frames(0), _fps(0), _scores {0, 0}
 
 {
     memset(&_keyState, 0, sizeof(_keyState));
@@ -147,30 +146,6 @@ void App::onQuit(SDL_AppResult result)
 
 void App::onUpdate()
 {
-    float speed = 0.05f * dT;
-    if (_keyState.left)
-    {
-        if (_shit->pos.x - speed > -0.5f)
-        {
-            _shit->pos.x -= speed;
-        }
-    }
-    else if (_keyState.right)
-    {
-        _shit->pos.x += speed;
-    }
-
-    if (_keyState.up)
-    {
-        if (_shit->pos.y - speed > -0.5f)
-        {
-            _shit->pos.y -= speed;
-        }
-    }
-    else if (_keyState.down)
-    {
-        _shit->pos.y += speed;
-    }
 }
 
 void App::onRender()
@@ -238,14 +213,12 @@ void App::onRender()
         auto digit1 = (_scores[i] / 10) % 10;
         if (digit1)
         {
-            drawDigit(digit1 + '0',
-                      { scoreLocations[i], -0.48f },
+            drawDigit(digit1 + '0', {scoreLocations[i], -0.48f},
                       {0.5f, 0.7f, 0.0f});
         }
 
         auto digit2 = (_scores[i] % 10);
-        drawDigit(digit2 + '0',
-                  { scoreLocations[i] + 0.07f, -0.48f },
+        drawDigit(digit2 + '0', {scoreLocations[i] + 0.07f, -0.48f},
                   {0.5f, 0.7f, 0.0f});
     }
 
@@ -256,9 +229,7 @@ void App::onRender()
     }
 
     /* Debug text */
-    auto debugText =
-        fmt::format("fps={} pos={:0.1}x{:0.1}", _fps, _shit ? _shit->pos.x : 0,
-                    _shit ? _shit->pos.y : 0);
+    auto debugText = fmt::format("fps={}", _fps);
     SDL_SetRenderClipRect(_renderer, nullptr);
     SDL_SetRenderDrawColor(_renderer, 255, 255, 64, 255);
     SDL_RenderDebugText(_renderer, 10.0f, 10.0f, debugText.c_str());
