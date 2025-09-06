@@ -6,54 +6,62 @@
 
 App::App()
     : _window(nullptr), _renderer(nullptr), _prevTime(0.0), _lag(0.0),
-      _theta(0.0f), _fpsTimer(0.0), _frames(0), _fps(0)
+      _theta(0.0f), _fpsTimer(0.0), _frames(0), _fps(0), _shit(nullptr)
 {
     memset(&_keyState, 0, sizeof(_keyState));
 }
 
 SDL_AppResult App::onInit(int argc, char** argv)
 {
-    auto ret = SDL_CreateWindowAndRenderer(
-        "Rasterization", SCREEN_WIDTH, SCREEN_HEIGHT, 0, &_window, &_renderer);
+    auto flags = SDL_WINDOW_RESIZABLE;
+    auto ret = SDL_CreateWindowAndRenderer("Pong", SCREEN_WIDTH, SCREEN_HEIGHT,
+                                           flags, &_window, &_renderer);
     if (!ret)
     {
         return SDL_APP_FAILURE;
     }
 
-    Rng rng(SDL_GetTicks());
-
-    static constexpr auto POLYPRIME_WIDTH = 256.0f;
-    static constexpr auto POLYPRIME_HEIGHT = 128.0f;
-
-    Polygon2D polyPrime;
-    polyPrime.visible = true;
-    polyPrime.pos.x = (SCREEN_WIDTH - POLYPRIME_WIDTH) / 2.0f;
-    polyPrime.pos.y = (SCREEN_HEIGHT - POLYPRIME_HEIGHT) / 2.0f;
-    polyPrime.velocity.x = polyPrime.velocity.y = 0.0f;
-    polyPrime.color.r = 237.0f / 255.0f;
-    polyPrime.color.g = 157.0f / 255.0f;
-    polyPrime.color.b = 100.0f / 255.0f;
-    polyPrime.vertices.emplace_back(0.0f, -POLYPRIME_HEIGHT / 2.0f);
-    polyPrime.vertices.emplace_back(POLYPRIME_WIDTH / 2.0f,
-                                    -POLYPRIME_HEIGHT / 2.0f);
-    polyPrime.vertices.emplace_back(-POLYPRIME_WIDTH / 2.0f,
-                                    POLYPRIME_HEIGHT / 2.0f);
-
-    _polygons.push_back(polyPrime);
-
-    for (int i = 0; i < 10; i++)
+    /* Separator lines */
+    for (int i = 0; i < 21; i++)
     {
-        auto poly = createPolygon(rng, 3 + (rng.next() % 5),
-                                  (rng.fnext() * 128.0f) - 64.0f);
-        poly.visible = true;
-        poly.pos.x = SCREEN_WIDTH * rng.fnext();
-        poly.pos.y = SCREEN_HEIGHT * rng.fnext();
-        poly.velocity.x = poly.velocity.y = 0.0f;
-        poly.color.r = rng.fnext();
-        poly.color.g = rng.fnext();
-        poly.color.b = rng.fnext();
-        _polygons.push_back(poly);
+        auto entity = std::make_unique<Entity>();
+        entity->pos = {0.0f, -0.5f + (i * 0.05f)};
+        entity->size = {0.005f, 0.03f};
+        entity->flags = Entity::DISPLAY;
+        entity->color.r = 0.5f;
+        entity->color.g = 0.5f;
+        entity->color.b = 0.5f;
+        _entities.push_back(std::move(entity));
     }
+
+    /* Ball */
+    auto entity = std::make_unique<Entity>();
+    entity->pos = {0.0f, 0.0f};
+    entity->size = {0.01f, 0.01f};
+    entity->flags = Entity::DISPLAY;
+    entity->color.r = 1.0f;
+    entity->color.g = 1.0f;
+    entity->color.b = 1.0f;
+    _entities.push_back(std::move(entity));
+
+    /* Paddles */
+    entity = std::make_unique<Entity>();
+    entity->pos = {-0.4f, 0.0f};
+    entity->size = {0.02f, 0.1f};
+    entity->flags = Entity::DISPLAY;
+    entity->color.r = 1.0f;
+    entity->color.g = 0.75f;
+    entity->color.b = 0.5f;
+    _entities.push_back(std::move(entity));
+
+    entity = std::make_unique<Entity>();
+    entity->pos = {0.4f, 0.0f};
+    entity->size = {0.02f, 0.1f};
+    entity->flags = Entity::DISPLAY;
+    entity->color.r = 0.5f;
+    entity->color.g = 0.75f;
+    entity->color.b = 1.0f;
+    _entities.push_back(std::move(entity));
 
     return SDL_APP_CONTINUE;
 }
@@ -121,7 +129,7 @@ SDL_AppResult App::onIterate()
     }
 
     auto endTime = SDL_GetTicks() / 1000.0;
-    if (endTime - beginTime < 1.0/FPS)
+    if (endTime - beginTime < 1.0 / FPS)
     {
         auto delay = ((1.0 / FPS) - (endTime - beginTime)) * 1000;
         SDL_Delay(static_cast<uint32_t>(delay));
@@ -135,88 +143,31 @@ void App::onQuit(SDL_AppResult result)
 {
 }
 
-void App::drawPolygon(const Polygon2D& poly)
-{
-    SDL_SetRenderDrawColorFloat(_renderer, poly.color.r, poly.color.g,
-                                poly.color.b, 1.0f);
-
-    for (int i = 0; i < poly.vertices.size() - 1; i++)
-    {
-        SDL_RenderLine(_renderer, poly.vertices[i].x + poly.pos.x,
-                       poly.vertices[i].y + poly.pos.y,
-                       poly.vertices[i + 1].x + poly.pos.x,
-                       poly.vertices[i + 1].y + poly.pos.y);
-    }
-
-    SDL_RenderLine(_renderer, poly.vertices[0].x + poly.pos.x,
-                   poly.vertices[0].y + poly.pos.y,
-                   poly.vertices[poly.vertices.size() - 1].x + poly.pos.x,
-                   poly.vertices[poly.vertices.size() - 1].y + poly.pos.y);
-}
-
-Polygon2D App::createPolygon(Rng& rng, int vertCount, float size)
-{
-    assert(vertCount >= 3);
-
-    std::vector<float> angles(vertCount);
-    for (int i = 0; i < vertCount; i++)
-    {
-        angles[i] = rng.fnext() * 2.0f * M_PI;
-    }
-
-    std::sort(angles.begin(), angles.end());
-
-    Polygon2D result;
-    result.vertices.reserve(vertCount);
-    for (float a : angles)
-    {
-        float r = 0.5f + 0.5f * rng.fnext(); /* radius [0.5f,1.0f) */
-        float x = r * std::cos(a);
-        float y = r * std::sin(a);
-        result.vertices.emplace_back(x * size, y * size);
-    }
-
-    return result;
-}
-
-Polygon2D App::rotatePolygon(Polygon2D poly, float theta)
-{
-    for (auto& vert : poly.vertices)
-    {
-        vert.x = vert.x * std::cos(theta) - vert.y * std::sin(theta);
-        vert.y = vert.x * std::sin(theta) + vert.y * std::cos(theta);
-    }
-    return poly;
-}
-
 void App::onUpdate()
 {
-    auto velocity = std::min(640.0f / 5.0f, 480.0f / 5.0f);
-    if (_keyState.up)
-    {
-        _polygons[0].pos.y -= velocity * dT;
-    }
-    else if (_keyState.down)
-    {
-        _polygons[0].pos.y += velocity * dT;
-    }
-
+    float speed = 0.05f * dT;
     if (_keyState.left)
     {
-        _polygons[0].pos.x -= velocity * dT;
+        if (_shit->pos.x - speed > -0.5f)
+        {
+            _shit->pos.x -= speed;
+        }
     }
     else if (_keyState.right)
     {
-        _polygons[0].pos.x += velocity * dT;
+        _shit->pos.x += speed;
     }
 
-    if (_keyState.space)
+    if (_keyState.up)
     {
-        _theta += ((2 * M_PI) / 10.0f) * dT;
-        if (_theta > 2 * M_PI)
+        if (_shit->pos.y - speed > -0.5f)
         {
-            _theta -= 2 * M_PI;
+            _shit->pos.y -= speed;
         }
+    }
+    else if (_keyState.down)
+    {
+        _shit->pos.y += speed;
     }
 }
 
@@ -225,48 +176,51 @@ void App::onRender()
     SDL_SetRenderDrawColor(_renderer, 0x64, 0x95, 0xED, 0xFF);
     SDL_RenderClear(_renderer);
 
-    SDL_FRect clipRect;
-    if (((float)SCREEN_WIDTH / SCREEN_HEIGHT) > 4.0f / 3.0f)
+    int screenWidth, screenHeight;
+    SDL_GetRenderOutputSize(_renderer, &screenWidth, &screenHeight);
+
+    /* GameScreen */
+    SDL_FRect rcGameScreen;
+    rcGameScreen.w = screenWidth > screenHeight ? screenHeight : screenWidth;
+    rcGameScreen.h = rcGameScreen.w;
+    rcGameScreen.x = (screenWidth - rcGameScreen.w) / 2;
+    rcGameScreen.y = (screenHeight - rcGameScreen.h) / 2;
+
+    SDL_SetRenderDrawColor(_renderer, 0x10, 0x10, 0x10, 0xFF);
+    SDL_RenderFillRect(_renderer, &rcGameScreen);
+
+    /* Entities (they are just rectangles) */
+    /*
+     * Coordinate system:
+     * top left: 0.0,0.0
+     * bottom right: 1.0,1.0
+     */
+    /* Trans      Scale            Trans */
+    auto transformX = [rcGameScreen](float x)
+    { return ((x + 0.5f) * rcGameScreen.w) + rcGameScreen.x; };
+    auto transformY = [rcGameScreen](float y)
+    { return ((y + 0.5f) * rcGameScreen.h) + rcGameScreen.y; };
+    auto scaleX = [rcGameScreen](float w) { return w * rcGameScreen.w; };
+    auto scaleY = [rcGameScreen](float h) { return h * rcGameScreen.h; };
+
+    for (const auto& entity : _entities)
     {
-        clipRect.w = (SCREEN_HEIGHT * 4.0f) / 3.0f;
-        clipRect.h = SCREEN_HEIGHT;
-        clipRect.x = (SCREEN_WIDTH - clipRect.w) / 2.0f;
-        clipRect.y = 0.0;
-    }
-    else
-    {
-        clipRect.w = SCREEN_WIDTH;
-        clipRect.h = (clipRect.w * 3.0f) / 4.0f;
-        clipRect.x = 0.0f;
-        clipRect.y = (SCREEN_HEIGHT - clipRect.h) / 2.0f;
+        SDL_FRect rc;
+        rc.x = transformX(entity->pos.x - (entity->size.x / 2.0f));
+        rc.y = transformY(entity->pos.y - (entity->size.y / 2.0f));
+        rc.w = scaleX(entity->size.x);
+        rc.h = scaleY(entity->size.y);
+        SDL_SetRenderDrawColor(_renderer, std::round(entity->color.r * 255.0f),
+                               std::round(entity->color.g * 255.0f),
+                               std::round(entity->color.b * 255.0f), 0xFF);
+        SDL_RenderFillRect(_renderer, &rc);
     }
 
-    SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
-    SDL_RenderRect(_renderer, &clipRect);
-
-    SDL_Rect iClipRect;
-    iClipRect.w = clipRect.w;
-    iClipRect.h = clipRect.h;
-    iClipRect.x = clipRect.x;
-    iClipRect.y = clipRect.y;
-    SDL_SetRenderClipRect(_renderer, &iClipRect);
-
-    for (int i = 0; i < _polygons.size(); i++)
-    {
-        if (false && i == 0)
-        {
-            auto rotated = rotatePolygon(_polygons[i], _theta);
-            drawPolygon(rotated);
-        }
-        else
-        {
-            drawPolygon(_polygons[i]);
-        }
-    }
-
-    auto debugText =
-        fmt::format("fps={} pos={:0.1f},{:0.1f} theta={:0.1f}", _fps,
-                    _polygons[0].pos.x, _polygons[0].pos.y, _theta);
+    /* Debug text */
+    auto debugText = fmt::format("fps={} pos={:0.1}x{:0.1}",
+                                 _fps,
+                                 _shit ? _shit->pos.x : 0,
+                                 _shit ? _shit->pos.y : 0);
     SDL_SetRenderClipRect(_renderer, nullptr);
     SDL_SetRenderDrawColor(_renderer, 255, 255, 64, 255);
     SDL_RenderDebugText(_renderer, 10.0f, 10.0f, debugText.c_str());

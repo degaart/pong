@@ -1,9 +1,9 @@
 #pragma once
 
-#include "rng.hpp"
 #include <SDL3/SDL.h>
 #include <glm/glm.hpp>
 #include <vector>
+#include <memory>
 
 struct Keystate
 {
@@ -14,13 +14,14 @@ struct Keystate
     bool space;
 };
 
-struct Polygon2D
+struct Entity
 {
-    bool visible;
-    std::vector<glm::vec2> vertices;
-    glm::vec2 pos;
-    glm::vec2 velocity;
+    static constexpr auto DISPLAY = 1;
+
+    glm::vec2 pos; /* center */
+    glm::vec2 size;
     glm::vec3 color;
+    unsigned flags;
 };
 
 /*
@@ -46,7 +47,7 @@ class App
   private:
     SDL_Window* _window;
     SDL_Renderer* _renderer;
-    std::vector<Polygon2D> _polygons;
+    std::vector<std::unique_ptr<Entity>> _entities;
     Keystate _keyState;
     double _prevTime;
     double _lag;
@@ -54,12 +55,9 @@ class App
     double _fpsTimer;
     int _frames;
     int _fps;
+    Entity* _shit;
 
     void onUpdate();
     void onRender();
-
-    Polygon2D createPolygon(Rng& rng, int vertCount, float size);
-    void drawPolygon(const Polygon2D& poly);
-    Polygon2D rotatePolygon(Polygon2D poly, float theta);
 };
 
