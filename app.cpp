@@ -60,7 +60,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
 
     /* Top wall */
     entity = std::make_unique<Entity>();
-    entity->size = {1.0f, 0.1f};
+    entity->size = {1.2f, 0.1f};
     entity->pos = {0.0f, -0.5f - (entity->size.y / 2.0f)};
     entity->flags = Entity::DISPLAY | Entity::PHYSICS;
     entity->color.r = 0.5f;
@@ -70,7 +70,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
 
     /* Bottom wall */
     entity = std::make_unique<Entity>();
-    entity->size = {1.0f, 0.1f};
+    entity->size = {1.2f, 0.1f};
     entity->pos = {0.0f, 0.5f + (entity->size.y / 2.0f)};
     entity->flags = Entity::DISPLAY | Entity::PHYSICS;
     entity->color.r = 0.5f;
@@ -268,11 +268,42 @@ void App::onUpdate()
             {
                 if (isColliding(*_ball, *e))
                 {
-                    e->color = glm::vec3 {0.75f, 0.1f, 0.1f};
                 }
                 else
                 {
-                    e->color = e->origColor;
+                }
+
+                /* reset color */
+                e->color = e->origColor;
+
+                /* Resolve collision on x axis */
+                if (isColliding(*_ball, *e))
+                {
+                    if (_ball->v.x > 0.0f) /* going right */
+                    {
+                        _ball->pos.x = e->pos.x - (e->size.x / 2.0f) - (_ball->size.x / 2.0f);
+                    }
+                    else if(_ball->v.x < 0.0f) /* going left */
+                    {
+                        _ball->pos.x = e->pos.x + (e->size.x / 2.0f) + (_ball->size.x / 2.0f);
+                    }
+                    _ball->v.x *= -1.0f;
+                    e->color = glm::vec3 {0.75f, 0.1f, 0.1f};
+                }
+
+                /* Resolve collision on y axis */
+                if (isColliding(*_ball, *e))
+                {
+                    if (_ball->v.y > 0.0f) /* going down */
+                    {
+                        _ball->pos.y = e->pos.y - (e->size.y / 2.0f) - (_ball->size.y / 2.0f);
+                    }
+                    else if(_ball->v.y < 0.0f) /* going up */
+                    {
+                        _ball->pos.y = e->pos.y + (e->size.y / 2.0f) + (_ball->size.y / 2.0f);
+                    }
+                    _ball->v.y *= -1.0f;
+                    e->color = glm::vec3 {0.75f, 0.1f, 0.1f};
                 }
             }
         }
