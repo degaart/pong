@@ -3,6 +3,7 @@
 #include "font.hpp"
 #include <assert.h>
 #include <fmt/format.h>
+#include <optional>
 
 App::App()
     : _window(nullptr), _renderer(nullptr), _prevTime(0.0), _lag(0.0), _theta(0.0f), _fpsTimer(0.0), _frames(0), _fps(0), _scores {0, 0}, _ball(nullptr)
@@ -209,6 +210,26 @@ static bool isColliding(const Entity& a, const Entity& b)
         (a.pos.y + (a.size.y / 2.0f) > b.pos.y - (b.size.y / 2.0f));
 }
 
+static std::optional<glm::vec2> penetrationVector(const Entity& a, const Entity& b)
+{
+    glm::vec2 d = b.pos - a.pos;
+    float px = (a.size.x / 2.0f + b.size.x / 2.0f) - std::abs(d.x);
+    float py = (a.size.y / 2.0f + b.size.y / 2.0f) - std::abs(d.y);
+    if (px <= 0.0f || py <= 0.0f)
+    {
+        return std::nullopt;
+    }
+
+    if (px < py)
+    {
+        return glm::vec2 {d.x < 0.0f ? -px : px, 0.0f};
+    }
+    else
+    {
+        return glm::vec2 {0.0f, d.y < 0.0f ? -py : py};
+    }
+}
+
 static void resolveCollision(Entity& a, const Entity& b, float restitution = 0.0f)
 {
     /* overlap */
@@ -265,44 +286,17 @@ void App::onUpdate()
         {
             if (e->flags & Entity::PHYSICS)
             {
-                if (isColliding(*_ball, *e))
+                auto pv = penetrationVector(*_ball, *e);
+                if (pv)
                 {
+                    e->color = glm::vec3 {0.75f, 0.1f, 0.1f};
+                    e->pv = *pv;
+                    _ball->pos += glm::vec2 { -pv->x, -pv->y };
                 }
                 else
                 {
-                }
-
-                /* reset color */
-                e->color = e->origColor;
-
-                /* Resolve collision on x axis */
-                if (isColliding(*_ball, *e))
-                {
-                    if (_ball->v.x > 0.0f) /* going right */
-                    {
-                        _ball->pos.x = e->pos.x - (e->size.x / 2.0f) - (_ball->size.x / 2.0f);
-                    }
-                    else if (_ball->v.x < 0.0f) /* going left */
-                    {
-                        _ball->pos.x = e->pos.x + (e->size.x / 2.0f) + (_ball->size.x / 2.0f);
-                    }
-                    _ball->v.x *= -1.0f;
-                    e->color = glm::vec3 {0.75f, 0.1f, 0.1f};
-                }
-
-                /* Resolve collision on y axis */
-                if (isColliding(*_ball, *e))
-                {
-                    if (_ball->v.y > 0.0f) /* going down */
-                    {
-                        _ball->pos.y = e->pos.y - (e->size.y / 2.0f) - (_ball->size.y / 2.0f);
-                    }
-                    else if (_ball->v.y < 0.0f) /* going up */
-                    {
-                        _ball->pos.y = e->pos.y + (e->size.y / 2.0f) + (_ball->size.y / 2.0f);
-                    }
-                    _ball->v.y *= -1.0f;
-                    e->color = glm::vec3 {0.75f, 0.1f, 0.1f};
+                    e->color = e->origColor;
+                    e->pv = std::nullopt;
                 }
             }
         }
@@ -359,6 +353,15 @@ void App::onRender()
         rc.h = size.y * rcGameScreen.h;
         SDL_RenderRect(renderer, &rc);
     };
+    auto drawLine = [rcGameScreen, renderer = _renderer](glm::vec2 a, glm::vec2 b, glm::vec3 col)
+    {
+        SDL_SetRenderDrawColor(renderer, std::round(col.r * 255.0f), std::round(col.g * 255.0f), std::round(col.b * 255.0f), 0xFF);
+        SDL_RenderLine(renderer,
+                       (a.x + 0.5f) * rcGameScreen.w + rcGameScreen.x,
+                       (a.y + 0.5f) * rcGameScreen.h + rcGameScreen.y,
+                       (b.x + 0.5f) * rcGameScreen.w + rcGameScreen.x,
+                       (b.y + 0.5f) * rcGameScreen.h + rcGameScreen.y);
+    };
     auto drawDigit = [drawRect, renderer = _renderer](char digit, glm::vec2 pos, glm::vec3 col)
     {
         assert(digit >= '0' && digit <= '9');
@@ -393,6 +396,15 @@ void App::onRender()
     for (const auto& entity : _entities)
     {
         drawRect(entity->pos, entity->size, entity->color);
+    }
+
+    /* Penetration vectors */
+    for (const auto& entity : _entities)
+    {
+        if (entity->pv)
+        {
+            drawLine(entity->pos, entity->pos + *entity->pv, {1.0f, 0.87f, 0.08f});
+        }
     }
 
     /* Debug text */

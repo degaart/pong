@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <memory>
+#include <optional>
 
 struct Keystate
 {
@@ -31,6 +32,7 @@ struct Entity
     glm::vec3 origColor;
     glm::vec2 v;
     glm::vec2 a;
+    std::optional<glm::vec2> pv; /* penetration vector */
     unsigned flags;
 };
 
