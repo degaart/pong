@@ -5,9 +5,7 @@
 #include <fmt/format.h>
 
 App::App()
-    : _window(nullptr), _renderer(nullptr), _prevTime(0.0), _lag(0.0),
-      _theta(0.0f), _fpsTimer(0.0), _frames(0), _fps(0), _scores {0, 0},
-      _ball(nullptr)
+    : _window(nullptr), _renderer(nullptr), _prevTime(0.0), _lag(0.0), _theta(0.0f), _fpsTimer(0.0), _frames(0), _fps(0), _scores {0, 0}, _ball(nullptr)
 
 {
     memset(&_keyState, 0, sizeof(_keyState));
@@ -16,8 +14,7 @@ App::App()
 SDL_AppResult App::onInit(int argc, char** argv)
 {
     auto flags = SDL_WINDOW_RESIZABLE;
-    auto ret = SDL_CreateWindowAndRenderer("Pong", SCREEN_WIDTH, SCREEN_HEIGHT,
-                                           flags, &_window, &_renderer);
+    auto ret = SDL_CreateWindowAndRenderer("Pong", SCREEN_WIDTH, SCREEN_HEIGHT, flags, &_window, &_renderer);
     if (!ret)
     {
         return SDL_APP_FAILURE;
@@ -196,8 +193,7 @@ void App::onQuit(SDL_AppResult result)
 {
 }
 
-static
-bool isColliding(const Entity& a, const Entity& b)
+static bool isColliding(const Entity& a, const Entity& b)
 {
     return
         /* left side of a is at the left of the right side of b */
@@ -210,13 +206,10 @@ bool isColliding(const Entity& a, const Entity& b)
         (a.pos.y - (a.size.y / 2.0f) < b.pos.y + (b.size.y / 2.0f)) &&
 
         /* bottom side of a is underneath top side of b */
-        (a.pos.y + (a.size.y / 2.0f) > b.pos.y - (b.size.y / 2.0f))
-    ;
+        (a.pos.y + (a.size.y / 2.0f) > b.pos.y - (b.size.y / 2.0f));
 }
 
-static
-void resolveCollision(Entity& a, const Entity& b,
-                             float restitution = 0.0f)
+static void resolveCollision(Entity& a, const Entity& b, float restitution = 0.0f)
 {
     /* overlap */
 }
@@ -226,7 +219,7 @@ void App::onUpdate()
 {
     if (_ball)
     {
-        const float movespeed = 0.25f;
+        const float movespeed = 0.5;
         if (_keyState.up)
         {
             _ball->v.y = -1.0f;
@@ -253,10 +246,16 @@ void App::onUpdate()
             _ball->v.x = 0.0f;
         }
 
+        if (_keyState.space)
+        {
+            _ball->pos = glm::vec2 {0.0f, 0.0f};
+        }
+
         if (glm::length(_ball->v))
         {
             _ball->v = glm::normalize(_ball->v) * movespeed;
         }
+
         _ball->pos += _ball->v * dT;
     }
 
@@ -283,7 +282,7 @@ void App::onUpdate()
                     {
                         _ball->pos.x = e->pos.x - (e->size.x / 2.0f) - (_ball->size.x / 2.0f);
                     }
-                    else if(_ball->v.x < 0.0f) /* going left */
+                    else if (_ball->v.x < 0.0f) /* going left */
                     {
                         _ball->pos.x = e->pos.x + (e->size.x / 2.0f) + (_ball->size.x / 2.0f);
                     }
@@ -298,7 +297,7 @@ void App::onUpdate()
                     {
                         _ball->pos.y = e->pos.y - (e->size.y / 2.0f) - (_ball->size.y / 2.0f);
                     }
-                    else if(_ball->v.y < 0.0f) /* going up */
+                    else if (_ball->v.y < 0.0f) /* going up */
                     {
                         _ball->pos.y = e->pos.y + (e->size.y / 2.0f) + (_ball->size.y / 2.0f);
                     }
@@ -338,40 +337,29 @@ void App::onRender()
      * top left: 0.0,0.0
      * bottom right: 1.0,1.0
      */
-    auto drawRect = [rcGameScreen, renderer = _renderer](
-                        glm::vec2 pos, glm::vec2 size, glm::vec3 col)
+    auto drawRect = [rcGameScreen, renderer = _renderer](glm::vec2 pos, glm::vec2 size, glm::vec3 col)
     {
-        SDL_SetRenderDrawColor(renderer, std::round(col.r * 255.0f),
-                               std::round(col.g * 255.0f),
-                               std::round(col.b * 255.0f), 0xFF);
+        SDL_SetRenderDrawColor(renderer, std::round(col.r * 255.0f), std::round(col.g * 255.0f), std::round(col.b * 255.0f), 0xFF);
 
         SDL_FRect rc;
-        rc.x =
-            (pos.x - (size.x / 2.0f) + 0.5f) * rcGameScreen.w + rcGameScreen.x;
-        rc.y =
-            (pos.y - (size.y / 2.0f) + 0.5f) * rcGameScreen.h + rcGameScreen.y;
+        rc.x = (pos.x - (size.x / 2.0f) + 0.5f) * rcGameScreen.w + rcGameScreen.x;
+        rc.y = (pos.y - (size.y / 2.0f) + 0.5f) * rcGameScreen.h + rcGameScreen.y;
         rc.w = size.x * rcGameScreen.w;
         rc.h = size.y * rcGameScreen.h;
         SDL_RenderFillRect(renderer, &rc);
     };
-    auto drawFrame = [rcGameScreen, renderer = _renderer](
-                         glm::vec2 pos, glm::vec2 size, glm::vec3 col)
+    auto drawFrame = [rcGameScreen, renderer = _renderer](glm::vec2 pos, glm::vec2 size, glm::vec3 col)
     {
-        SDL_SetRenderDrawColor(renderer, std::round(col.r * 255.0f),
-                               std::round(col.g * 255.0f),
-                               std::round(col.b * 255.0f), 0xFF);
+        SDL_SetRenderDrawColor(renderer, std::round(col.r * 255.0f), std::round(col.g * 255.0f), std::round(col.b * 255.0f), 0xFF);
 
         SDL_FRect rc;
-        rc.x =
-            (pos.x + 0.5f) * rcGameScreen.w + rcGameScreen.x;
-        rc.y =
-            (pos.y + 0.5f) * rcGameScreen.h + rcGameScreen.y;
+        rc.x = (pos.x + 0.5f) * rcGameScreen.w + rcGameScreen.x;
+        rc.y = (pos.y + 0.5f) * rcGameScreen.h + rcGameScreen.y;
         rc.w = size.x * rcGameScreen.w;
         rc.h = size.y * rcGameScreen.h;
         SDL_RenderRect(renderer, &rc);
     };
-    auto drawDigit = [drawRect, renderer = _renderer](char digit, glm::vec2 pos,
-                                                      glm::vec3 col)
+    auto drawDigit = [drawRect, renderer = _renderer](char digit, glm::vec2 pos, glm::vec3 col)
     {
         assert(digit >= '0' && digit <= '9');
         const char* charData = FONT_DATA[digit - '0'];
@@ -381,8 +369,7 @@ void App::onRender()
             {
                 if (charData[j * 3 + i] != ' ')
                 {
-                    drawRect(glm::vec2 {i * 0.02f, j * 0.02f} + pos,
-                             {0.02f, 0.02f}, col);
+                    drawRect(glm::vec2 {i * 0.02f, j * 0.02f} + pos, {0.02f, 0.02f}, col);
                 }
             }
         }
@@ -395,13 +382,11 @@ void App::onRender()
         auto digit1 = (_scores[i] / 10) % 10;
         if (digit1)
         {
-            drawDigit(digit1 + '0', {scoreLocations[i], -0.48f},
-                      {0.5f, 0.7f, 0.0f});
+            drawDigit(digit1 + '0', {scoreLocations[i], -0.48f}, {0.5f, 0.7f, 0.0f});
         }
 
         auto digit2 = (_scores[i] % 10);
-        drawDigit(digit2 + '0', {scoreLocations[i] + 0.07f, -0.48f},
-                  {0.5f, 0.7f, 0.0f});
+        drawDigit(digit2 + '0', {scoreLocations[i] + 0.07f, -0.48f}, {0.5f, 0.7f, 0.0f});
     }
 
     /* Entities (they are just rectangles) */
