@@ -6,7 +6,8 @@
 
 App::App()
     : _window(nullptr), _renderer(nullptr), _prevTime(0.0), _lag(0.0),
-      _theta(0.0f), _fpsTimer(0.0), _frames(0), _fps(0), _scores {0, 0}
+      _theta(0.0f), _fpsTimer(0.0), _frames(0), _fps(0), _scores {0, 0},
+      _ball(nullptr)
 
 {
     memset(&_keyState, 0, sizeof(_keyState));
@@ -35,21 +36,67 @@ SDL_AppResult App::onInit(int argc, char** argv)
         _entities.push_back(std::move(entity));
     }
 
+    std::unique_ptr<Entity> entity;
+
+    /* Left wall */
+    entity = std::make_unique<Entity>();
+    entity->size = {0.1f, 1.0f};
+    entity->pos = {-0.5f - (entity->size.x / 2.0f), 0.0f};
+    entity->flags = Entity::DISPLAY | Entity::PHYSICS;
+    entity->color.r = 1.0f;
+    entity->color.g = 0.5f;
+    entity->color.b = 1.0f;
+    _entities.push_back(std::move(entity));
+
+    /* Right wall */
+    entity = std::make_unique<Entity>();
+    entity->size = {0.1f, 1.0f};
+    entity->pos = {0.5f + (entity->size.x / 2.0f), 0.0f};
+    entity->flags = Entity::DISPLAY | Entity::PHYSICS;
+    entity->color.r = 1.0f;
+    entity->color.g = 0.5f;
+    entity->color.b = 1.0f;
+    _entities.push_back(std::move(entity));
+
+    /* Top wall */
+    entity = std::make_unique<Entity>();
+    entity->size = {1.0f, 0.1f};
+    entity->pos = {0.0f, -0.5f - (entity->size.y / 2.0f)};
+    entity->flags = Entity::DISPLAY | Entity::PHYSICS;
+    entity->color.r = 0.5f;
+    entity->color.g = 1.0f;
+    entity->color.b = 1.0f;
+    _entities.push_back(std::move(entity));
+
+    /* Bottom wall */
+    entity = std::make_unique<Entity>();
+    entity->size = {1.0f, 0.1f};
+    entity->pos = {0.0f, 0.5f + (entity->size.y / 2.0f)};
+    entity->flags = Entity::DISPLAY | Entity::PHYSICS;
+    entity->color.r = 0.5f;
+    entity->color.g = 1.0f;
+    entity->color.b = 1.0f;
+    _entities.push_back(std::move(entity));
+
     /* Ball */
-    auto entity = std::make_unique<Entity>();
+    entity = std::make_unique<Entity>();
     entity->pos = {0.0f, 0.0f};
-    entity->size = {0.01f, 0.01f};
-    entity->flags = Entity::DISPLAY;
+    // entity->size = {0.01f, 0.01f};
+    entity->size = {0.1f, 0.1f};
+    entity->flags = Entity::DISPLAY | Entity::PHYSICS;
     entity->color.r = 1.0f;
     entity->color.g = 1.0f;
     entity->color.b = 1.0f;
+    // entity->v = glm::normalize(glm::vec2 {0.1f, 0.1f});
+    entity->v = {0.0f, 0.0f};
+    _ball = entity.get();
     _entities.push_back(std::move(entity));
 
     /* Paddles */
     entity = std::make_unique<Entity>();
     entity->pos = {-0.4f, 0.0f};
     entity->size = {0.02f, 0.1f};
-    entity->flags = Entity::DISPLAY;
+    entity->flags = Entity::DISPLAY | Entity::PHYSICS;
     entity->color.r = 1.0f;
     entity->color.g = 0.75f;
     entity->color.b = 0.5f;
@@ -58,11 +105,16 @@ SDL_AppResult App::onInit(int argc, char** argv)
     entity = std::make_unique<Entity>();
     entity->pos = {0.4f, 0.0f};
     entity->size = {0.02f, 0.1f};
-    entity->flags = Entity::DISPLAY;
+    entity->flags = Entity::DISPLAY | Entity::PHYSICS;
     entity->color.r = 0.5f;
     entity->color.g = 0.75f;
     entity->color.b = 1.0f;
     _entities.push_back(std::move(entity));
+
+    for (auto& e : _entities)
+    {
+        e->origColor = e->color;
+    }
 
     return SDL_APP_CONTINUE;
 }
@@ -144,8 +196,87 @@ void App::onQuit(SDL_AppResult result)
 {
 }
 
+static
+bool isColliding(const Entity& a, const Entity& b)
+{
+    return
+        /* left side of a is at the left of the right side of b */
+        (a.pos.x - (a.size.x / 2.0f) < b.pos.x + (b.size.x / 2.0f)) &&
+
+        /* right side of a is at the right of the left side of b */
+        (a.pos.x + (a.size.x / 2.0f) > b.pos.x - (b.size.x / 2.0f)) &&
+
+        /* top side of a is over botton side of b */
+        (a.pos.y - (a.size.y / 2.0f) < b.pos.y + (b.size.y / 2.0f)) &&
+
+        /* bottom side of a is underneath top side of b */
+        (a.pos.y + (a.size.y / 2.0f) > b.pos.y - (b.size.y / 2.0f))
+    ;
+}
+
+static
+void resolveCollision(Entity& a, const Entity& b,
+                             float restitution = 0.0f)
+{
+    /* overlap */
+}
+
+/* We start the ball movement after someone hits any key */
 void App::onUpdate()
 {
+    if (_ball)
+    {
+        const float movespeed = 0.25f;
+        if (_keyState.up)
+        {
+            _ball->v.y = -1.0f;
+        }
+        else if (_keyState.down)
+        {
+            _ball->v.y = 1.0f;
+        }
+        else
+        {
+            _ball->v.y = 0.0f;
+        }
+
+        if (_keyState.left)
+        {
+            _ball->v.x = -1.0f;
+        }
+        else if (_keyState.right)
+        {
+            _ball->v.x = 1.0f;
+        }
+        else
+        {
+            _ball->v.x = 0.0f;
+        }
+
+        if (glm::length(_ball->v))
+        {
+            _ball->v = glm::normalize(_ball->v) * movespeed;
+        }
+        _ball->pos += _ball->v * dT;
+    }
+
+    for (auto& e : _entities)
+    {
+        if (e.get() != _ball)
+        {
+            if (e->flags & Entity::PHYSICS)
+            {
+                if (isColliding(*_ball, *e))
+                {
+                    e->color = glm::vec3 {0.75f, 0.1f, 0.1f};
+                }
+                else
+                {
+                    e->color = e->origColor;
+                }
+            }
+        }
+    }
 }
 
 void App::onRender()
@@ -160,6 +291,10 @@ void App::onRender()
     SDL_FRect rcGameScreen;
     rcGameScreen.w = screenWidth > screenHeight ? screenHeight : screenWidth;
     rcGameScreen.h = rcGameScreen.w;
+
+    rcGameScreen.w *= 0.9f;
+    rcGameScreen.h *= 0.9f;
+
     rcGameScreen.x = (screenWidth - rcGameScreen.w) / 2;
     rcGameScreen.y = (screenHeight - rcGameScreen.h) / 2;
 
@@ -187,6 +322,22 @@ void App::onRender()
         rc.w = size.x * rcGameScreen.w;
         rc.h = size.y * rcGameScreen.h;
         SDL_RenderFillRect(renderer, &rc);
+    };
+    auto drawFrame = [rcGameScreen, renderer = _renderer](
+                         glm::vec2 pos, glm::vec2 size, glm::vec3 col)
+    {
+        SDL_SetRenderDrawColor(renderer, std::round(col.r * 255.0f),
+                               std::round(col.g * 255.0f),
+                               std::round(col.b * 255.0f), 0xFF);
+
+        SDL_FRect rc;
+        rc.x =
+            (pos.x + 0.5f) * rcGameScreen.w + rcGameScreen.x;
+        rc.y =
+            (pos.y + 0.5f) * rcGameScreen.h + rcGameScreen.y;
+        rc.w = size.x * rcGameScreen.w;
+        rc.h = size.y * rcGameScreen.h;
+        SDL_RenderRect(renderer, &rc);
     };
     auto drawDigit = [drawRect, renderer = _renderer](char digit, glm::vec2 pos,
                                                       glm::vec3 col)

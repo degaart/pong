@@ -14,13 +14,23 @@ struct Keystate
     bool space;
 };
 
+struct Rect
+{
+    float x, y;
+    float w, h;
+};
+
 struct Entity
 {
     static constexpr auto DISPLAY = 1;
+    static constexpr auto PHYSICS = 2;
 
     glm::vec2 pos; /* center */
     glm::vec2 size;
     glm::vec3 color;
+    glm::vec3 origColor;
+    glm::vec2 v;
+    glm::vec2 a;
     unsigned flags;
 };
 
@@ -56,6 +66,7 @@ class App
     int _frames;
     int _fps;
     int _scores[2];
+    Entity* _ball;
 
     void onUpdate();
     void onRender();
