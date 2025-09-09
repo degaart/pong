@@ -1,10 +1,12 @@
 #pragma once
 
+#include "rng.hpp"
 #include <SDL3/SDL.h>
 #include <glm/glm.hpp>
 #include <vector>
 #include <memory>
 #include <optional>
+#include <string>
 
 struct Keystate
 {
@@ -69,6 +71,8 @@ class App
     int _fps;
     int _scores[2];
     Entity* _ball;
+    std::string _debugText;
+    Rng _rng;
 
     void onUpdate();
     void onRender();

@@ -7,7 +7,11 @@
  */
 class Rng
 {
-  public:
+public:
+    Rng()
+    {
+    }
+
     Rng(uint64_t seed)
     {
         this->seed(seed);
@@ -44,7 +48,7 @@ class Rng
         return (next() >> 11) * (1.0 / (1ULL << 53));
     }
 
-  private:
+private:
     uint64_t _state[4];
 
     uint64_t rotl(const uint64_t x, int k)
@@ -60,3 +64,4 @@ class Rng
         return z ^ (z >> 31);
     }
 };
+

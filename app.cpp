@@ -2,6 +2,7 @@
 
 #include "font.hpp"
 #include <assert.h>
+#include <chrono>
 #include <fmt/format.h>
 #include <optional>
 
@@ -10,6 +11,7 @@ App::App()
 
 {
     memset(&_keyState, 0, sizeof(_keyState));
+    _rng.seed(std::chrono::system_clock::now().time_since_epoch().count());
 }
 
 SDL_AppResult App::onInit(int argc, char** argv)
@@ -79,13 +81,12 @@ SDL_AppResult App::onInit(int argc, char** argv)
     /* Ball */
     entity = std::make_unique<Entity>();
     entity->pos = {0.0f, 0.0f};
-    // entity->size = {0.01f, 0.01f};
-    entity->size = {0.1f, 0.1f};
+    entity->size = {0.01f, 0.01f};
+    //entity->size = {0.1f, 0.1f};
     entity->flags = Entity::DISPLAY | Entity::PHYSICS;
     entity->color.r = 1.0f;
     entity->color.g = 1.0f;
     entity->color.b = 1.0f;
-    // entity->v = glm::normalize(glm::vec2 {0.1f, 0.1f});
     entity->v = {0.0f, 0.0f};
     _ball = entity.get();
     _entities.push_back(std::move(entity));
@@ -230,46 +231,20 @@ static std::optional<glm::vec2> penetrationVector(const Entity& a, const Entity&
     }
 }
 
-static void resolveCollision(Entity& a, const Entity& b, float restitution = 0.0f)
-{
-    /* overlap */
-}
-
 /* We start the ball movement after someone hits any key */
 void App::onUpdate()
 {
+    _debugText.clear();
+
     if (_ball)
     {
         const float movespeed = 0.5;
-        if (_keyState.up)
-        {
-            _ball->v.y = -1.0f;
-        }
-        else if (_keyState.down)
-        {
-            _ball->v.y = 1.0f;
-        }
-        else
-        {
-            _ball->v.y = 0.0f;
-        }
-
-        if (_keyState.left)
-        {
-            _ball->v.x = -1.0f;
-        }
-        else if (_keyState.right)
-        {
-            _ball->v.x = 1.0f;
-        }
-        else
-        {
-            _ball->v.x = 0.0f;
-        }
-
         if (_keyState.space)
         {
-            _ball->pos = glm::vec2 {0.0f, 0.0f};
+            if (_ball->v.x == 0.0f && _ball->v.y == 0.0f)
+            {
+                _ball->v = glm::vec2 {(_rng.fnext() * 2.0f) - 1.0f, (_rng.fnext() * 2.0f) - 1.0f};
+            }
         }
 
         if (glm::length(_ball->v))
@@ -291,7 +266,17 @@ void App::onUpdate()
                 {
                     e->color = glm::vec3 {0.75f, 0.1f, 0.1f};
                     e->pv = *pv;
-                    _ball->pos += glm::vec2 { -pv->x, -pv->y };
+                    _ball->pos += glm::vec2 {-pv->x, -pv->y};
+                    _debugText = fmt::format("{:.2f}x{:.2f}", pv->x, pv->y);
+
+                    if (pv->x < 0.0f || pv->x > 0.0f)
+                    {
+                        _ball->v.x = -_ball->v.x;
+                    }
+                    if (pv->y < 0.0f || pv->y > 0.0f)
+                    {
+                        _ball->v.y = -_ball->v.y;
+                    }
                 }
                 else
                 {
@@ -356,11 +341,8 @@ void App::onRender()
     auto drawLine = [rcGameScreen, renderer = _renderer](glm::vec2 a, glm::vec2 b, glm::vec3 col)
     {
         SDL_SetRenderDrawColor(renderer, std::round(col.r * 255.0f), std::round(col.g * 255.0f), std::round(col.b * 255.0f), 0xFF);
-        SDL_RenderLine(renderer,
-                       (a.x + 0.5f) * rcGameScreen.w + rcGameScreen.x,
-                       (a.y + 0.5f) * rcGameScreen.h + rcGameScreen.y,
-                       (b.x + 0.5f) * rcGameScreen.w + rcGameScreen.x,
-                       (b.y + 0.5f) * rcGameScreen.h + rcGameScreen.y);
+        SDL_RenderLine(renderer, (a.x + 0.5f) * rcGameScreen.w + rcGameScreen.x, (a.y + 0.5f) * rcGameScreen.h + rcGameScreen.y,
+                       (b.x + 0.5f) * rcGameScreen.w + rcGameScreen.x, (b.y + 0.5f) * rcGameScreen.h + rcGameScreen.y);
     };
     auto drawDigit = [drawRect, renderer = _renderer](char digit, glm::vec2 pos, glm::vec3 col)
     {
@@ -408,7 +390,7 @@ void App::onRender()
     }
 
     /* Debug text */
-    auto debugText = fmt::format("fps={}", _fps);
+    auto debugText = fmt::format("fps={} {}", _fps, _debugText);
     SDL_SetRenderClipRect(_renderer, nullptr);
     SDL_SetRenderDrawColor(_renderer, 255, 255, 64, 255);
     SDL_RenderDebugText(_renderer, 10.0f, 10.0f, debugText.c_str());
