@@ -17,6 +17,16 @@
                 "CMAKE_EXE_LINKER_FLAGS": "-ggdb -fsanitize=address -fno-omit-frame-pointer",
                 "CMAKE_WARN_DEPRECATED": "OFF"
             }
+        },
+        {
+            "name": "win32 debug",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_WARN_DEPRECATED": "OFF"
+            }
         }
     ]
 }
