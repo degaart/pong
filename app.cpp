@@ -7,7 +7,10 @@
 #include <optional>
 
 App::App()
-    : _window(nullptr), _renderer(nullptr), _prevTime(0.0), _lag(0.0), _theta(0.0f), _fpsTimer(0.0), _frames(0), _fps(0), _scores {0, 0}, _ball(nullptr)
+    : _window(nullptr), _renderer(nullptr), _prevTime(0.0),
+      _lag(0.0), _theta(0.0f), _fpsTimer(0.0), _frames(0), 
+      _fps(0), _scores {0, 0}, _ball(nullptr), _p1(nullptr),
+      _p2(nullptr)
 
 {
     memset(&_keyState, 0, sizeof(_keyState));
@@ -81,7 +84,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
     /* Ball */
     entity = std::make_unique<Entity>();
     entity->pos = {0.0f, 0.0f};
-    entity->size = {0.01f, 0.01f};
+    entity->size = {0.02f, 0.02f};
     //entity->size = {0.1f, 0.1f};
     entity->flags = Entity::DISPLAY | Entity::PHYSICS;
     entity->color.r = 1.0f;
@@ -99,6 +102,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
     entity->color.r = 1.0f;
     entity->color.g = 0.75f;
     entity->color.b = 0.5f;
+    _p1 = entity.get();
     _entities.push_back(std::move(entity));
 
     entity = std::make_unique<Entity>();
@@ -108,6 +112,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
     entity->color.r = 0.5f;
     entity->color.g = 0.75f;
     entity->color.b = 1.0f;
+    _p2 = entity.get();
     _entities.push_back(std::move(entity));
 
     for (auto& e : _entities)
@@ -251,22 +256,52 @@ void App::onUpdate()
         {
             _ball->v = glm::normalize(_ball->v) * movespeed;
         }
-
-        _ball->pos += _ball->v * dT;
     }
 
+    if (_p1)
+    {
+        if (_keyState.up)
+        {
+            _p1->v.y = -0.3f;
+        }
+        else if (_keyState.down)
+        {
+            _p1->v.y = 0.3f;
+        }
+        else
+        {
+            _p1->v.y = 0.0f;
+        }
+
+    }
+
+    std::vector<Entity*> entities;
     for (auto& e : _entities)
     {
-        if (e.get() != _ball)
+        if (e->flags & Entity::PHYSICS)
         {
-            if (e->flags & Entity::PHYSICS)
+            entities.push_back(e.get());
+        }
+    }
+
+    for (auto& e : entities)
+    {
+        e->pos += e->v * dT;
+    }
+
+
+    for (auto& a : entities)
+    {
+        for(const auto& b : entities)
+        {
+            if (a != b)
             {
-                auto pv = penetrationVector(*_ball, *e);
+                auto pv = penetrationVector(*a, *b);
                 if (pv)
                 {
-                    e->color = glm::vec3 {0.75f, 0.1f, 0.1f};
-                    e->pv = *pv;
-                    _ball->pos += glm::vec2 {-pv->x, -pv->y};
+                    b->color = glm::vec3 {0.75f, 0.1f, 0.1f};
+                    b->pv = *pv;
+                    a->pos += glm::vec2 {-pv->x, -pv->y};
                     _debugText = fmt::format("{:.2f}x{:.2f}", pv->x, pv->y);
 
                     if (pv->x < 0.0f || pv->x > 0.0f)

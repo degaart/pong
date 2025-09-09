@@ -2,11 +2,12 @@
 
 #include "rng.hpp"
 #include <SDL3/SDL.h>
+#include <functional>
 #include <glm/glm.hpp>
-#include <vector>
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 struct Keystate
 {
@@ -36,6 +37,7 @@ struct Entity
     glm::vec2 a;
     std::optional<glm::vec2> pv; /* penetration vector */
     unsigned flags;
+    std::function<void()> onCollision;
 };
 
 /*
@@ -71,6 +73,8 @@ class App
     int _fps;
     int _scores[2];
     Entity* _ball;
+    Entity* _p1;
+    Entity* _p2;
     std::string _debugText;
     Rng _rng;
 
