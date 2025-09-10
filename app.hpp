@@ -52,12 +52,13 @@ struct Entity
 class App
 {
 public:
-    static constexpr auto SCREEN_WIDTH = 960;
-    static constexpr auto SCREEN_HEIGHT = 540;
-    static constexpr auto FPS = 60;
-    static constexpr auto dT = 1.0f / FPS;
-    static constexpr auto PADDLE_SPEED = 0.4f;
+    static constexpr auto ASPECT_RATIO = 1.77; /* 16/9 */
     static constexpr auto BALL_SPEED = 0.5f;
+    static constexpr auto FPS = 60;
+    static constexpr auto PADDLE_SPEED = 0.4f;
+    static constexpr auto SCREEN_HEIGHT = 540;
+    static constexpr auto SCREEN_WIDTH = 960;
+    static constexpr auto dT = 1.0f / FPS;
 
     App();
     SDL_AppResult onInit(int argc, char** argv);

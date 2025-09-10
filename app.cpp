@@ -131,7 +131,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
     entity = std::make_unique<Entity>();
     entity->size = {0.1f, 1.0f};
     entity->pos = {-0.5f - (entity->size.x / 2.0f), 0.0f};
-    entity->flags = Entity::DISPLAY | Entity::PHYSICS;
+    entity->flags = Entity::PHYSICS;
     entity->color.r = 1.0f;
     entity->color.g = 0.5f;
     entity->color.b = 1.0f;
@@ -151,7 +151,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
     entity = std::make_unique<Entity>();
     entity->size = {0.1f, 1.0f};
     entity->pos = {0.5f + (entity->size.x / 2.0f), 0.0f};
-    entity->flags = Entity::DISPLAY | Entity::PHYSICS;
+    entity->flags = Entity::PHYSICS;
     entity->color.r = 1.0f;
     entity->color.g = 0.5f;
     entity->color.b = 1.0f;
@@ -171,7 +171,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
     entity = std::make_unique<Entity>();
     entity->size = {1.2f, 0.1f};
     entity->pos = {0.0f, -0.5f - (entity->size.y / 2.0f)};
-    entity->flags = Entity::DISPLAY | Entity::PHYSICS;
+    entity->flags = Entity::PHYSICS;
     entity->color.r = 0.5f;
     entity->color.g = 1.0f;
     entity->color.b = 1.0f;
@@ -189,7 +189,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
     entity = std::make_unique<Entity>();
     entity->size = {1.2f, 0.1f};
     entity->pos = {0.0f, 0.5f + (entity->size.y / 2.0f)};
-    entity->flags = Entity::DISPLAY | Entity::PHYSICS;
+    entity->flags = Entity::PHYSICS;
     entity->color.r = 0.5f;
     entity->color.g = 1.0f;
     entity->color.b = 1.0f;
@@ -206,7 +206,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
     /* Ball */
     entity = std::make_unique<Entity>();
     entity->pos = {0.0f, 0.0f};
-    entity->size = {0.02f, 0.02f};
+    entity->size = {0.01f, 0.01f * ASPECT_RATIO};
     entity->flags = Entity::DISPLAY | Entity::PHYSICS;
     entity->color.r = 1.0f;
     entity->color.g = 1.0f;
@@ -455,15 +455,28 @@ void App::onRender()
 
     /* GameScreen */
     SDL_FRect rcGameScreen;
-    rcGameScreen.w = screenWidth > screenHeight ? screenHeight : screenWidth;
-    rcGameScreen.h = rcGameScreen.w;
-
-    rcGameScreen.w *= 0.9f;
-    rcGameScreen.h *= 0.9f;
-
+    if (static_cast<float>(screenWidth) / static_cast<float>(screenHeight) > ASPECT_RATIO)
+    {
+        rcGameScreen.h = screenHeight;
+        rcGameScreen.w = ASPECT_RATIO * rcGameScreen.h;
+    }
+    else
+    {
+        rcGameScreen.w = screenWidth;
+        rcGameScreen.h = rcGameScreen.w / ASPECT_RATIO;
+    }
+    rcGameScreen.w *= 0.95f;
+    rcGameScreen.h *= 0.95f;
     rcGameScreen.x = (screenWidth - rcGameScreen.w) / 2;
     rcGameScreen.y = (screenHeight - rcGameScreen.h) / 2;
 
+
+    SDL_Rect clipRect;
+    clipRect.x = rcGameScreen.x;
+    clipRect.y = rcGameScreen.y;
+    clipRect.w = rcGameScreen.w;
+    clipRect.h = rcGameScreen.h;
+    SDL_SetRenderClipRect(_renderer, &clipRect);
     SDL_SetRenderDrawColor(_renderer, 0x10, 0x10, 0x10, 0xFF);
     SDL_RenderFillRect(_renderer, &rcGameScreen);
 
@@ -534,7 +547,10 @@ void App::onRender()
     /* Entities (they are just rectangles) */
     for (const auto& entity : _entities)
     {
-        drawRect(entity->pos, entity->size, entity->color);
+        if (entity->flags & Entity::DISPLAY)
+        {
+            drawRect(entity->pos, entity->size, entity->color);
+        }
     }
 
     /* Penetration vectors */
