@@ -300,6 +300,14 @@ SDL_AppResult App::onInit(int argc, char** argv)
         {
             self.v.y = PADDLE_SPEED;
         }
+        else if (_ball->v.x < 0.0f && _ball->pos.y < self.pos.y)
+        {
+            self.v.y = PADDLE_SPEED;
+        }
+        else if (_ball->v.x < 0.0f && _ball->pos.y > self.pos.y)
+        {
+            self.v.y = -PADDLE_SPEED;
+        }
         else
         {
             self.v.y = 0.0f;
