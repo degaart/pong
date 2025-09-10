@@ -55,6 +55,8 @@ class App
     static constexpr auto SCREEN_HEIGHT = 540;
     static constexpr auto FPS = 60;
     static constexpr auto dT = 1.0f/FPS;
+    static constexpr auto PADDLE_SPEED = 0.4f;
+    static constexpr auto BALL_SPEED = 0.5f;
 
     App();
     SDL_AppResult onInit(int argc, char** argv);

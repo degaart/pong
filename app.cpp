@@ -191,7 +191,6 @@ SDL_AppResult App::onInit(int argc, char** argv)
     entity->v = {0.0f, 0.0f};
     entity->onUpdate = [this](Entity& ball, const Keystate& keyState)
     {
-        const float movespeed = 0.5;
         if (keyState.space)
         {
             if (ball.v.x == 0.0f && ball.v.y == 0.0f)
@@ -202,7 +201,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
 
         if (glm::length(ball.v))
         {
-            ball.v = glm::normalize(ball.v) * movespeed;
+            ball.v = glm::normalize(ball.v) * BALL_SPEED;
         }
     };
     entity->name = "ball";
@@ -217,7 +216,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
     entity->color.r = 1.0f;
     entity->color.g = 0.75f;
     entity->color.b = 0.5f;
-    entity->onCollision = [this,bounce](Entity& self, Entity& other, glm::vec2 pv)
+    entity->onCollision = [this, bounce](Entity& self, Entity& other, glm::vec2 pv)
     {
         if (&other == _ball)
         {
@@ -232,11 +231,11 @@ SDL_AppResult App::onInit(int argc, char** argv)
     {
         if (keyState.up)
         {
-            p1.v.y = -0.3f;
+            p1.v.y = -PADDLE_SPEED;
         }
         else if (keyState.down)
         {
-            p1.v.y = 0.3f;
+            p1.v.y = PADDLE_SPEED;
         }
         else
         {
@@ -254,7 +253,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
     entity->color.r = 0.5f;
     entity->color.g = 0.75f;
     entity->color.b = 1.0f;
-    entity->onCollision = [this,bounce](Entity& self, Entity& other, glm::vec2 pv)
+    entity->onCollision = [this, bounce](Entity& self, Entity& other, glm::vec2 pv)
     {
         if (&other == _ball)
         {
@@ -263,6 +262,21 @@ SDL_AppResult App::onInit(int argc, char** argv)
         else /* assume wall */
         {
             self.pos += -pv;
+        }
+    };
+    entity->onUpdate = [this](Entity& self, const Keystate& keyState)
+    {
+        if (_ball->v.x > 0.0f && _ball->pos.y < self.pos.y)
+        {
+            self.v.y = -PADDLE_SPEED;
+        }
+        else if (_ball->v.x > 0.0f && _ball->pos.y > self.pos.y)
+        {
+            self.v.y = PADDLE_SPEED;
+        }
+        else
+        {
+            self.v.y = 0.0f;
         }
     };
     entity->name = "leftpaddle";
