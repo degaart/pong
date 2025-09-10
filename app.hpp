@@ -37,7 +37,8 @@ struct Entity
     glm::vec2 a;
     std::optional<glm::vec2> pv; /* penetration vector */
     unsigned flags;
-    std::function<void()> onCollision;
+    std::function<void(Entity&,Entity&,glm::vec2)> onCollision;
+    std::string name;
 };
 
 /*
@@ -78,6 +79,7 @@ class App
     std::string _debugText;
     Rng _rng;
 
+    void reset();
     void onUpdate();
     void onRender();
 };

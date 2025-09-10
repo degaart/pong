@@ -6,15 +6,67 @@
 #include <fmt/format.h>
 #include <optional>
 
+/*** Utility functions ****************************************************************/
+static bool isColliding(const Entity& a, const Entity& b)
+{
+    return
+        /* left side of a is at the left of the right side of b */
+        (a.pos.x - (a.size.x / 2.0f) < b.pos.x + (b.size.x / 2.0f)) &&
+
+        /* right side of a is at the right of the left side of b */
+        (a.pos.x + (a.size.x / 2.0f) > b.pos.x - (b.size.x / 2.0f)) &&
+
+        /* top side of a is over botton side of b */
+        (a.pos.y - (a.size.y / 2.0f) < b.pos.y + (b.size.y / 2.0f)) &&
+
+        /* bottom side of a is underneath top side of b */
+        (a.pos.y + (a.size.y / 2.0f) > b.pos.y - (b.size.y / 2.0f));
+}
+
+static std::optional<glm::vec2> penetrationVector(const Entity& a, const Entity& b)
+{
+    glm::vec2 d = b.pos - a.pos;
+    float px = (a.size.x / 2.0f + b.size.x / 2.0f) - std::abs(d.x);
+    float py = (a.size.y / 2.0f + b.size.y / 2.0f) - std::abs(d.y);
+    if (px <= 0.0f || py <= 0.0f)
+    {
+        return std::nullopt;
+    }
+
+    if (px < py)
+    {
+        return glm::vec2 {d.x < 0.0f ? -px : px, 0.0f};
+    }
+    else
+    {
+        return glm::vec2 {0.0f, d.y < 0.0f ? -py : py};
+    }
+}
+
+/*** Member functions *****************************************************************/
 App::App()
-    : _window(nullptr), _renderer(nullptr), _prevTime(0.0),
-      _lag(0.0), _theta(0.0f), _fpsTimer(0.0), _frames(0), 
-      _fps(0), _scores {0, 0}, _ball(nullptr), _p1(nullptr),
+    : _window(nullptr),
+      _renderer(nullptr),
+      _prevTime(0.0),
+      _lag(0.0),
+      _theta(0.0f),
+      _fpsTimer(0.0),
+      _frames(0),
+      _fps(0),
+      _scores {0, 0},
+      _ball(nullptr),
+      _p1(nullptr),
       _p2(nullptr)
 
 {
     memset(&_keyState, 0, sizeof(_keyState));
     _rng.seed(std::chrono::system_clock::now().time_since_epoch().count());
+}
+
+void App::reset()
+{
+    _ball->pos.x = _ball->pos.y = 0.0f;
+    _ball->v.x = _ball->v.y = 0.0f;
 }
 
 SDL_AppResult App::onInit(int argc, char** argv)
@@ -41,6 +93,19 @@ SDL_AppResult App::onInit(int argc, char** argv)
 
     std::unique_ptr<Entity> entity;
 
+    auto bounce = [](Entity& self, Entity& ball, glm::vec2 pv)
+    {
+        ball.pos += glm::vec2 {pv.x, pv.y};
+        if (pv.x < 0.0f || pv.x > 0.0f) /* horizontal collision */
+        {
+            ball.v.x = -ball.v.x;
+        }
+        if (pv.y < 0.0f || pv.y > 0.0f) /* vertical collision */
+        {
+            ball.v.y = -ball.v.y;
+        }
+    };
+
     /* Left wall */
     entity = std::make_unique<Entity>();
     entity->size = {0.1f, 1.0f};
@@ -49,6 +114,15 @@ SDL_AppResult App::onInit(int argc, char** argv)
     entity->color.r = 1.0f;
     entity->color.g = 0.5f;
     entity->color.b = 1.0f;
+    entity->onCollision = [this, bounce](Entity& self, Entity& other, glm::vec2 pv)
+    {
+        if (&other == _ball)
+        {
+            _scores[1]++;
+            reset();
+        }
+    };
+    entity->name = "leftwall";
     _entities.push_back(std::move(entity));
 
     /* Right wall */
@@ -59,6 +133,15 @@ SDL_AppResult App::onInit(int argc, char** argv)
     entity->color.r = 1.0f;
     entity->color.g = 0.5f;
     entity->color.b = 1.0f;
+    entity->onCollision = [this, bounce](Entity& self, Entity& other, glm::vec2 pv)
+    {
+        if (&other == _ball)
+        {
+            _scores[0]++;
+            reset();
+        }
+    };
+    entity->name = "rightwall";
     _entities.push_back(std::move(entity));
 
     /* Top wall */
@@ -69,6 +152,14 @@ SDL_AppResult App::onInit(int argc, char** argv)
     entity->color.r = 0.5f;
     entity->color.g = 1.0f;
     entity->color.b = 1.0f;
+    entity->onCollision = [this, bounce](Entity& self, Entity& other, glm::vec2 pv)
+    {
+        if (&other == _ball)
+        {
+            bounce(self, other, pv);
+        }
+    };
+    entity->name = "topwall";
     _entities.push_back(std::move(entity));
 
     /* Bottom wall */
@@ -79,18 +170,27 @@ SDL_AppResult App::onInit(int argc, char** argv)
     entity->color.r = 0.5f;
     entity->color.g = 1.0f;
     entity->color.b = 1.0f;
+    entity->onCollision = [this, bounce](Entity& self, Entity& other, glm::vec2 pv)
+    {
+        if (&other == _ball)
+        {
+            bounce(self, other, pv);
+        }
+    };
+    entity->name = "bottomwall";
     _entities.push_back(std::move(entity));
 
     /* Ball */
     entity = std::make_unique<Entity>();
     entity->pos = {0.0f, 0.0f};
     entity->size = {0.02f, 0.02f};
-    //entity->size = {0.1f, 0.1f};
+    // entity->size = {0.1f, 0.1f};
     entity->flags = Entity::DISPLAY | Entity::PHYSICS;
     entity->color.r = 1.0f;
     entity->color.g = 1.0f;
     entity->color.b = 1.0f;
     entity->v = {0.0f, 0.0f};
+    entity->name = "ball";
     _ball = entity.get();
     _entities.push_back(std::move(entity));
 
@@ -102,6 +202,18 @@ SDL_AppResult App::onInit(int argc, char** argv)
     entity->color.r = 1.0f;
     entity->color.g = 0.75f;
     entity->color.b = 0.5f;
+    entity->onCollision = [this,bounce](Entity& self, Entity& other, glm::vec2 pv)
+    {
+        if (&other == _ball)
+        {
+            bounce(self, other, pv);
+        }
+        else /* assume wall */
+        {
+            self.pos += -pv;
+        }
+    };
+    entity->name = "rightpaddle";
     _p1 = entity.get();
     _entities.push_back(std::move(entity));
 
@@ -112,6 +224,18 @@ SDL_AppResult App::onInit(int argc, char** argv)
     entity->color.r = 0.5f;
     entity->color.g = 0.75f;
     entity->color.b = 1.0f;
+    entity->onCollision = [this,bounce](Entity& self, Entity& other, glm::vec2 pv)
+    {
+        if (&other == _ball)
+        {
+            bounce(self, other, pv);
+        }
+        else /* assume wall */
+        {
+            self.pos += -pv;
+        }
+    };
+    entity->name = "leftpaddle";
     _p2 = entity.get();
     _entities.push_back(std::move(entity));
 
@@ -200,42 +324,6 @@ void App::onQuit(SDL_AppResult result)
 {
 }
 
-static bool isColliding(const Entity& a, const Entity& b)
-{
-    return
-        /* left side of a is at the left of the right side of b */
-        (a.pos.x - (a.size.x / 2.0f) < b.pos.x + (b.size.x / 2.0f)) &&
-
-        /* right side of a is at the right of the left side of b */
-        (a.pos.x + (a.size.x / 2.0f) > b.pos.x - (b.size.x / 2.0f)) &&
-
-        /* top side of a is over botton side of b */
-        (a.pos.y - (a.size.y / 2.0f) < b.pos.y + (b.size.y / 2.0f)) &&
-
-        /* bottom side of a is underneath top side of b */
-        (a.pos.y + (a.size.y / 2.0f) > b.pos.y - (b.size.y / 2.0f));
-}
-
-static std::optional<glm::vec2> penetrationVector(const Entity& a, const Entity& b)
-{
-    glm::vec2 d = b.pos - a.pos;
-    float px = (a.size.x / 2.0f + b.size.x / 2.0f) - std::abs(d.x);
-    float py = (a.size.y / 2.0f + b.size.y / 2.0f) - std::abs(d.y);
-    if (px <= 0.0f || py <= 0.0f)
-    {
-        return std::nullopt;
-    }
-
-    if (px < py)
-    {
-        return glm::vec2 {d.x < 0.0f ? -px : px, 0.0f};
-    }
-    else
-    {
-        return glm::vec2 {0.0f, d.y < 0.0f ? -py : py};
-    }
-}
-
 /* We start the ball movement after someone hits any key */
 void App::onUpdate()
 {
@@ -250,6 +338,12 @@ void App::onUpdate()
             {
                 _ball->v = glm::vec2 {(_rng.fnext() * 2.0f) - 1.0f, (_rng.fnext() * 2.0f) - 1.0f};
             }
+        }
+
+        if (_keyState.left)
+        {
+            _ball->pos.x = _ball->pos.y = 0.0f;
+            _ball->v.x = _ball->v.y = 0.0f;
         }
 
         if (glm::length(_ball->v))
@@ -272,7 +366,6 @@ void App::onUpdate()
         {
             _p1->v.y = 0.0f;
         }
-
     }
 
     std::vector<Entity*> entities;
@@ -289,34 +382,19 @@ void App::onUpdate()
         e->pos += e->v * dT;
     }
 
-
     for (auto& a : entities)
     {
-        for(const auto& b : entities)
+        for (const auto& b : entities)
         {
             if (a != b)
             {
                 auto pv = penetrationVector(*a, *b);
                 if (pv)
                 {
-                    b->color = glm::vec3 {0.75f, 0.1f, 0.1f};
-                    b->pv = *pv;
-                    a->pos += glm::vec2 {-pv->x, -pv->y};
-                    _debugText = fmt::format("{:.2f}x{:.2f}", pv->x, pv->y);
-
-                    if (pv->x < 0.0f || pv->x > 0.0f)
+                    if (a->onCollision)
                     {
-                        _ball->v.x = -_ball->v.x;
+                        a->onCollision(*a, *b, *pv);
                     }
-                    if (pv->y < 0.0f || pv->y > 0.0f)
-                    {
-                        _ball->v.y = -_ball->v.y;
-                    }
-                }
-                else
-                {
-                    e->color = e->origColor;
-                    e->pv = std::nullopt;
                 }
             }
         }
