@@ -38,6 +38,7 @@ struct Entity
     std::optional<glm::vec2> pv; /* penetration vector */
     unsigned flags;
     std::function<void(Entity&,Entity&,glm::vec2)> onCollision;
+    std::function<void(Entity&, const Keystate&)> onUpdate;
     std::string name;
 };
 

@@ -184,12 +184,27 @@ SDL_AppResult App::onInit(int argc, char** argv)
     entity = std::make_unique<Entity>();
     entity->pos = {0.0f, 0.0f};
     entity->size = {0.02f, 0.02f};
-    // entity->size = {0.1f, 0.1f};
     entity->flags = Entity::DISPLAY | Entity::PHYSICS;
     entity->color.r = 1.0f;
     entity->color.g = 1.0f;
     entity->color.b = 1.0f;
     entity->v = {0.0f, 0.0f};
+    entity->onUpdate = [this](Entity& ball, const Keystate& keyState)
+    {
+        const float movespeed = 0.5;
+        if (keyState.space)
+        {
+            if (ball.v.x == 0.0f && ball.v.y == 0.0f)
+            {
+                ball.v = glm::vec2 {(_rng.fnext() * 2.0f) - 1.0f, (_rng.fnext() * 2.0f) - 1.0f};
+            }
+        }
+
+        if (glm::length(ball.v))
+        {
+            ball.v = glm::normalize(ball.v) * movespeed;
+        }
+    };
     entity->name = "ball";
     _ball = entity.get();
     _entities.push_back(std::move(entity));
@@ -211,6 +226,21 @@ SDL_AppResult App::onInit(int argc, char** argv)
         else /* assume wall */
         {
             self.pos += -pv;
+        }
+    };
+    entity->onUpdate = [](Entity& p1, const Keystate& keyState)
+    {
+        if (keyState.up)
+        {
+            p1.v.y = -0.3f;
+        }
+        else if (keyState.down)
+        {
+            p1.v.y = 0.3f;
+        }
+        else
+        {
+            p1.v.y = 0.0f;
         }
     };
     entity->name = "rightpaddle";
@@ -329,51 +359,16 @@ void App::onUpdate()
 {
     _debugText.clear();
 
-    if (_ball)
-    {
-        const float movespeed = 0.5;
-        if (_keyState.space)
-        {
-            if (_ball->v.x == 0.0f && _ball->v.y == 0.0f)
-            {
-                _ball->v = glm::vec2 {(_rng.fnext() * 2.0f) - 1.0f, (_rng.fnext() * 2.0f) - 1.0f};
-            }
-        }
-
-        if (_keyState.left)
-        {
-            _ball->pos.x = _ball->pos.y = 0.0f;
-            _ball->v.x = _ball->v.y = 0.0f;
-        }
-
-        if (glm::length(_ball->v))
-        {
-            _ball->v = glm::normalize(_ball->v) * movespeed;
-        }
-    }
-
-    if (_p1)
-    {
-        if (_keyState.up)
-        {
-            _p1->v.y = -0.3f;
-        }
-        else if (_keyState.down)
-        {
-            _p1->v.y = 0.3f;
-        }
-        else
-        {
-            _p1->v.y = 0.0f;
-        }
-    }
-
     std::vector<Entity*> entities;
     for (auto& e : _entities)
     {
         if (e->flags & Entity::PHYSICS)
         {
             entities.push_back(e.get());
+        }
+        if (e->onUpdate)
+        {
+            e->onUpdate(*e, _keyState);
         }
     }
 
