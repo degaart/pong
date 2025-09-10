@@ -20,7 +20,7 @@ FetchContent_MakeAvailable(fmt)
 # SDL3
 FetchContent_Declare(
     sdl3
-    URL https://github.com/libsdl-org/SDL/releases/download/release-3.2.20/SDL3-3.2.20.tar.gz
+    URL https://github.com/libsdl-org/SDL/releases/download/release-3.2.22/SDL3-3.2.22.tar.gz
 )
 FetchContent_MakeAvailable(sdl3)
 

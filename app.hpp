@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rng.hpp"
+#include "sfx.hpp"
 #include <SDL3/SDL.h>
 #include <functional>
 #include <glm/glm.hpp>
@@ -37,7 +38,7 @@ struct Entity
     glm::vec2 a;
     std::optional<glm::vec2> pv; /* penetration vector */
     unsigned flags;
-    std::function<void(Entity&,Entity&,glm::vec2)> onCollision;
+    std::function<void(Entity&, Entity&, glm::vec2)> onCollision;
     std::function<void(Entity&, const Keystate&)> onUpdate;
     std::string name;
 };
@@ -50,11 +51,11 @@ struct Entity
  */
 class App
 {
-  public:
+public:
     static constexpr auto SCREEN_WIDTH = 960;
     static constexpr auto SCREEN_HEIGHT = 540;
     static constexpr auto FPS = 60;
-    static constexpr auto dT = 1.0f/FPS;
+    static constexpr auto dT = 1.0f / FPS;
     static constexpr auto PADDLE_SPEED = 0.4f;
     static constexpr auto BALL_SPEED = 0.5f;
 
@@ -64,9 +65,10 @@ class App
     SDL_AppResult onIterate();
     void onQuit(SDL_AppResult result);
 
-  private:
+private:
     SDL_Window* _window;
     SDL_Renderer* _renderer;
+    SDL_AudioStream* _audioStream;
     std::vector<std::unique_ptr<Entity>> _entities;
     Keystate _keyState;
     double _prevTime;
@@ -81,9 +83,13 @@ class App
     Entity* _p2;
     std::string _debugText;
     Rng _rng;
+    Sfx _startSound;
+    Sfx _bounceSound;
+    Sfx _loseSound;
 
     void reset();
     void onUpdate();
     void onRender();
+    void playSound(const Sfx& sound);
 };
 

@@ -78,6 +78,27 @@ SDL_AppResult App::onInit(int argc, char** argv)
         return SDL_APP_FAILURE;
     }
 
+    _startSound.load("start.ogg");
+    _bounceSound.load("bounce.ogg");
+    _loseSound.load("lose.ogg");
+
+    SDL_AudioSpec inAudioSpec;
+    inAudioSpec.format = SDL_AUDIO_S16LE;
+    inAudioSpec.channels = _startSound.channels();
+    inAudioSpec.freq = _startSound.sampleRate();
+
+    _audioStream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &inAudioSpec, nullptr, nullptr);
+    if (!_audioStream)
+    {
+        fmt::println(stderr, "Failed to create audio stream");
+        abort();
+    }
+    if (!SDL_ResumeAudioStreamDevice(_audioStream))
+    {
+        fmt::println(stderr, "Failed to resume audio stream playback");
+        abort();
+    }
+
     /* Separator lines */
     for (int i = 0; i < 21; i++)
     {
@@ -120,6 +141,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
         {
             _scores[1]++;
             reset();
+            playSound(_loseSound);
         }
     };
     entity->name = "leftwall";
@@ -139,6 +161,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
         {
             _scores[0]++;
             reset();
+            playSound(_loseSound);
         }
     };
     entity->name = "rightwall";
@@ -196,6 +219,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
             if (ball.v.x == 0.0f && ball.v.y == 0.0f)
             {
                 ball.v = glm::vec2 {(_rng.fnext() * 2.0f) - 1.0f, (_rng.fnext() * 2.0f) - 1.0f};
+                playSound(_startSound);
             }
         }
 
@@ -221,6 +245,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
         if (&other == _ball)
         {
             bounce(self, other, pv);
+            playSound(_bounceSound);
         }
         else /* assume wall */
         {
@@ -258,6 +283,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
         if (&other == _ball)
         {
             bounce(self, other, pv);
+            playSound(_bounceSound);
         }
         else /* assume wall */
         {
@@ -366,6 +392,7 @@ SDL_AppResult App::onIterate()
 
 void App::onQuit(SDL_AppResult result)
 {
+    SDL_DestroyAudioStream(_audioStream);
 }
 
 /* We start the ball movement after someone hits any key */
@@ -519,3 +546,9 @@ void App::onRender()
 
     SDL_RenderPresent(_renderer);
 }
+
+void App::playSound(const Sfx& sound)
+{
+    SDL_PutAudioStreamData(_audioStream, sound.samples(), sound.size());
+}
+
