@@ -59,6 +59,11 @@ public:
     static constexpr auto SCREEN_HEIGHT = 540;
     static constexpr auto SCREEN_WIDTH = 960;
     static constexpr auto dT = 1.0f / FPS;
+    static constexpr glm::vec3 COLOR_BACKGROUND = { 0.39f, 0.58f, 0.93f };
+    static constexpr glm::vec3 COLOR_DEBUGTEXT = { 1.0f, 1.0f, 0.25f };
+    static constexpr glm::vec3 COLOR_GAMESCREEN = { 0.04f, 0.04f, 0.04f };
+    static constexpr glm::vec3 COLOR_SCORE = { 0.5f, 0.7f, 0.0f };
+    static constexpr glm::vec3 COLOR_BALL = { 0.9f, 0.9f, 0.9f };
 
     App();
     SDL_AppResult onInit(int argc, char** argv);
