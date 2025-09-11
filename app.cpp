@@ -460,7 +460,22 @@ void App::onRender()
     SDL_SetRenderDrawColor(_renderer, std::round(COLOR_BACKGROUND.r * 255), std::round(COLOR_BACKGROUND.g * 255), std::round(COLOR_BACKGROUND.b * 255), 0xFF);
     SDL_RenderClear(_renderer);
 
-    auto drawRect = [this, screen](glm::vec2 p, glm::vec2 s, glm::vec3 c)
+    /* Determine gameScreen geometry */
+    SDL_FRect gameScreen;
+    if (screen.x / screen.y >= ASPECT_RATIO)
+    {
+        gameScreen.h = screen.y * 0.9f;
+        gameScreen.w = gameScreen.h * ASPECT_RATIO;
+    }
+    else
+    {
+        gameScreen.w = screen.x * 0.9f;
+        gameScreen.h = gameScreen.w / ASPECT_RATIO;
+    }
+    gameScreen.x = (screen.x - gameScreen.w) / 2.0f;
+    gameScreen.y = (screen.y - gameScreen.h) / 2.0f;
+
+    auto drawRect = [this, screen, gameScreen](glm::vec2 p, glm::vec2 s, glm::vec3 c)
     {
         SDL_SetRenderDrawColor(_renderer, std::round(c.r * 255), std::round(c.g * 255), std::round(c.b * 255), 0xFF);
 
@@ -472,29 +487,25 @@ void App::onRender()
         rc.y = (scaleY * p.y) + (screen.y / 2.0f);
         rc.w = scaleX * s.x;
         rc.h = scaleY * s.y;
+
+        scaleX = gameScreen.w / screen.x;
+        scaleY = gameScreen.h / screen.y;
+        rc.x = (scaleX * rc.x) + gameScreen.x;
+        rc.y = (scaleY * rc.y) + gameScreen.y;
+        rc.w *= scaleX;
+        rc.h *= scaleY;
+
         SDL_RenderFillRect(_renderer, &rc);
 
         SDL_SetRenderDrawColor(_renderer, 0xFF, 0, 0, 0xFF);
         SDL_RenderRect(_renderer, &rc);
     };
 
-    // drawRect({0.0f, 0.0f}, {50.0f, 50.0f}, COLOR_BALL);
-    // drawRect({0.0f, screen.y - 50.0f}, {50.0f, 50.0f}, COLOR_BALL);
-    // drawRect({screen.x - 50.0f, 0.0f}, {50.0f, 50.0f}, COLOR_BALL);
-    // drawRect({screen.x - 50.0f, screen.y - 50.0f}, {50.0f, 50.0f}, COLOR_BALL);
-    // drawRect({(screen.x - 50.0f)/2.0f, (screen.y - 50.0f)/2.0f}, {50.0f, 50.0f}, COLOR_BALL);
-
-    // drawRect({-screen.x / 2.0f, -screen.y / 2.0f}, {50.0f, 50.0f}, COLOR_BALL);
-    // drawRect({-screen.x / 2.0f, (screen.y / 2.0f) - 50.0f}, {50.0f, 50.0f}, COLOR_BALL);
-    // drawRect({(screen.x / 2.0f) - 50.0f, -screen.y / 2.0f}, {50.0f, 50.0f}, COLOR_BALL);
-    // drawRect({(screen.x / 2.0f) - 50.0f, (screen.y / 2.0f) - 50.0f}, {50.0f, 50.0f}, COLOR_BALL);
-    // drawRect({-50.0f/2.0f, -50.0f/2.0f}, {50.0f, 50.0f}, COLOR_BALL);
-
-    //drawRect({-ASPECT_RATIO / 2.0f, -ASPECT_RATIO / 2.0f}, {0.25f, 0.25f}, COLOR_BALL);
-    //drawRect({-0.25f / 2.0f, 0.25f / 2.0f}, {0.25f, 0.25f}, COLOR_BALL);
-    //drawRect({(0.25f / 2.0f) - 0.25f, -0.5f / 2.0f}, {0.25f, 0.25f}, COLOR_BALL);
-    //drawRect({(0.25f / 2.0f) - 0.25f, (0.5f / 2.0f) - 0.25f}, {0.25f, 0.25f}, COLOR_BALL);
-    //drawRect({-0.25f / 2.0f, -0.25f / 2.0f}, {0.25f, 0.25f}, COLOR_BALL);
+    drawRect({-0.885f, -0.5f}, {0.125f, 0.125f}, COLOR_BALL);
+    drawRect({-0.885f, 0.5f - 0.125f}, {0.125f, 0.125f}, COLOR_BALL);
+    drawRect({0.885f - 0.125f, -0.5f}, {0.125f, 0.125f}, COLOR_BALL);
+    drawRect({0.885f - 0.125f, 0.5f - 0.125f}, {0.125f, 0.125f}, COLOR_BALL);
+    drawRect({-0.125f / 2.0f, -0.125f / 2.0f}, {0.125f, 0.125f}, COLOR_BALL);
 
     /* Debug text */
     auto debugText = fmt::format("fps={} {}", _fps, _debugText);
