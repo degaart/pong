@@ -554,124 +554,7 @@ void App::onRender()
         SDL_SetRenderDrawColor(_renderer, std::round(col.r * 255.0f), std::round(col.g * 255.0f), std::round(col.b * 255.0f), 0xFF);
         SDL_RenderLine(_renderer, a.x, a.y, b.x, b.y);
     };
-    auto drawDigit = [this,drawRect](char digit, glm::vec2 pos, glm::vec3 col)
-    {
-        assert(digit >= '0' && digit <= '9');
-        const char* charData = FONT_DATA[digit - '0'];
-        for (int j = 0; j < 5; j++)
-        {
-            for (int i = 0; i < 3; i++)
-            {
-                if (charData[j * 3 + i] != ' ')
-                {
-                    drawRect(glm::vec2 {i * 0.02f, j * 0.02f} + pos, {0.02f, 0.02f}, col);
-                }
-            }
-        }
-    };
-
-    drawRect({-0.885f, -0.5f}, {0.125f, 0.125f}, COLOR_BALL);
-    drawRect({-0.885f, 0.5f - 0.125f}, {0.125f, 0.125f}, COLOR_BALL);
-    drawRect({0.885f - 0.125f, -0.5f}, {0.125f, 0.125f}, COLOR_BALL);
-    drawRect({0.885f - 0.125f, 0.5f - 0.125f}, {0.125f, 0.125f}, COLOR_BALL);
-    drawFrame({-0.125f / 2.0f, -0.125f / 2.0f}, {0.125f, 0.125f}, COLOR_BALL);
-    drawDigit('8', {0.0f, 0.0f}, COLOR_DEBUGTEXT);
-
-
-    /* Debug text */
-    auto debugText = fmt::format("fps={} {}", _fps, _debugText);
-    SDL_SetRenderClipRect(_renderer, nullptr);
-    SDL_SetRenderDrawColor(_renderer, std::round(COLOR_DEBUGTEXT.r * 255), std::round(COLOR_DEBUGTEXT.g * 255), std::round(COLOR_DEBUGTEXT.b * 255), 0xFF);
-    SDL_RenderDebugText(_renderer, 10.0f, 10.0f, debugText.c_str());
-
-    /* Show into screen */
-    SDL_RenderPresent(_renderer);
-}
-
-#if 0
-void App::onRender()
-{
-    SDL_SetRenderDrawColor(_renderer, 0x64, 0x95, 0xED, 0xFF);
-    SDL_RenderClear(_renderer);
-
-    int screenWidth, screenHeight;
-    SDL_GetRenderOutputSize(_renderer, &screenWidth, &screenHeight);
-
-    /* GameScreen */
-    SDL_FRect rcGameScreen;
-    if (static_cast<float>(screenWidth) / static_cast<float>(screenHeight) > ASPECT_RATIO)
-    {
-        rcGameScreen.h = screenHeight;
-        rcGameScreen.w = ASPECT_RATIO * rcGameScreen.h;
-    }
-    else
-    {
-        rcGameScreen.w = screenWidth;
-        rcGameScreen.h = rcGameScreen.w / ASPECT_RATIO;
-    }
-    rcGameScreen.w *= 0.95f;
-    rcGameScreen.h *= 0.95f;
-    rcGameScreen.x = (screenWidth - rcGameScreen.w) / 2;
-    rcGameScreen.y = (screenHeight - rcGameScreen.h) / 2;
-
-    SDL_Rect clipRect;
-    clipRect.x = rcGameScreen.x;
-    clipRect.y = rcGameScreen.y;
-    clipRect.w = rcGameScreen.w;
-    clipRect.h = rcGameScreen.h;
-    SDL_SetRenderClipRect(_renderer, &clipRect);
-    SDL_SetRenderDrawColor(_renderer, 0x10, 0x10, 0x10, 0xFF);
-    SDL_RenderFillRect(_renderer, &rcGameScreen);
-
-    /* draw functions (lambdas) */
-    /*
-     * Coordinate system:
-     * top left: 0.0,0.0
-     * bottom right: 1.0,1.0
-     */
-    auto transform = [rcGameScreen, screenWidth, screenHeight](glm::vec2 p) -> glm::vec2
-    {
-        glm::vec2 factor = {screenWidth / rcGameScreen.w, screenHeight / rcGameScreen.h};
-        return {factor.x * (p.x + (rcGameScreen.w / 2.0f)), factor.y * (p.y + (rcGameScreen.h / 2.0f))};
-    };
-    auto scale = [rcGameScreen, screenWidth, screenHeight](glm::vec2 size) -> glm::vec2
-    { return {screenWidth / rcGameScreen.w, screenHeight / rcGameScreen.h}; };
-
-    auto drawRect = [rcGameScreen, renderer = _renderer, transform, scale](glm::vec2 pos, glm::vec2 size, glm::vec3 col)
-    {
-        SDL_SetRenderDrawColor(renderer, std::round(col.r * 255.0f), std::round(col.g * 255.0f), std::round(col.b * 255.0f), 0xFF);
-        pos = transform(pos);
-        size = transform(size);
-
-        SDL_FRect rc;
-        rc.x = pos.x - size.x / 2.0f;
-        rc.y = pos.y - size.y / 2.0f;
-        rc.w = size.x;
-        rc.h = size.y;
-        // rc.x = (pos.x - (size.x / 2.0f) + 0.5f) * rcGameScreen.w + rcGameScreen.x;
-        // rc.y = (pos.y - (size.y / 2.0f) + 0.5f) * rcGameScreen.h + rcGameScreen.y;
-        // rc.w = size.x * rcGameScreen.w;
-        // rc.h = size.y * rcGameScreen.h;
-        SDL_RenderFillRect(renderer, &rc);
-    };
-    auto drawFrame = [rcGameScreen, renderer = _renderer](glm::vec2 pos, glm::vec2 size, glm::vec3 col)
-    {
-        SDL_SetRenderDrawColor(renderer, std::round(col.r * 255.0f), std::round(col.g * 255.0f), std::round(col.b * 255.0f), 0xFF);
-
-        SDL_FRect rc;
-        rc.x = (pos.x + 0.5f) * rcGameScreen.w + rcGameScreen.x;
-        rc.y = (pos.y + 0.5f) * rcGameScreen.h + rcGameScreen.y;
-        rc.w = size.x * rcGameScreen.w;
-        rc.h = size.y * rcGameScreen.h;
-        SDL_RenderRect(renderer, &rc);
-    };
-    auto drawLine = [rcGameScreen, renderer = _renderer](glm::vec2 a, glm::vec2 b, glm::vec3 col)
-    {
-        SDL_SetRenderDrawColor(renderer, std::round(col.r * 255.0f), std::round(col.g * 255.0f), std::round(col.b * 255.0f), 0xFF);
-        SDL_RenderLine(renderer, (a.x + 0.5f) * rcGameScreen.w + rcGameScreen.x, (a.y + 0.5f) * rcGameScreen.h + rcGameScreen.y,
-                       (b.x + 0.5f) * rcGameScreen.w + rcGameScreen.x, (b.y + 0.5f) * rcGameScreen.h + rcGameScreen.y);
-    };
-    auto drawDigit = [drawRect, renderer = _renderer](char digit, glm::vec2 pos, glm::vec3 col)
+    auto drawDigit = [this, drawRect](char digit, glm::vec2 pos, glm::vec3 col)
     {
         assert(digit >= '0' && digit <= '9');
         const char* charData = FONT_DATA[digit - '0'];
@@ -688,17 +571,17 @@ void App::onRender()
     };
 
     /* Score */
-    static const float scoreLocations[] = {-0.48, 0.37f};
+    static const float scoreLocations[] = {-(ASPECT_RATIO / 2.0f) + (0.02f * 4.0f), (ASPECT_RATIO / 2.0f) - (0.02f * 14.0f)};
     for (int i = 0; i < 2; i++)
     {
         auto digit1 = (_scores[i] / 10) % 10;
         if (digit1)
         {
-            drawDigit(digit1 + '0', {scoreLocations[i], -0.48f}, {0.5f, 0.7f, 0.0f});
+            drawDigit(digit1 + '0', {scoreLocations[i], -0.48f}, COLOR_SCORE);
         }
 
         auto digit2 = (_scores[i] % 10);
-        drawDigit(digit2 + '0', {scoreLocations[i] + 0.07f, -0.48f}, {0.5f, 0.7f, 0.0f});
+        drawDigit(digit2 + '0', {scoreLocations[i] + 0.07f, -0.48f}, COLOR_SCORE);
     }
 
     /* Entities (they are just rectangles) */
@@ -710,24 +593,15 @@ void App::onRender()
         }
     }
 
-    /* Penetration vectors */
-    for (const auto& entity : _entities)
-    {
-        if (entity->pv)
-        {
-            drawLine(entity->pos, entity->pos + *entity->pv, {1.0f, 0.87f, 0.08f});
-        }
-    }
-
     /* Debug text */
     auto debugText = fmt::format("fps={} {}", _fps, _debugText);
     SDL_SetRenderClipRect(_renderer, nullptr);
-    SDL_SetRenderDrawColor(_renderer, 255, 255, 64, 255);
+    SDL_SetRenderDrawColor(_renderer, std::round(COLOR_DEBUGTEXT.r * 255), std::round(COLOR_DEBUGTEXT.g * 255), std::round(COLOR_DEBUGTEXT.b * 255), 0xFF);
     SDL_RenderDebugText(_renderer, 10.0f, 10.0f, debugText.c_str());
 
+    /* Show into screen */
     SDL_RenderPresent(_renderer);
 }
-#endif
 
 void App::playSound(const Sfx& sound)
 {
