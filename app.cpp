@@ -445,16 +445,22 @@ void App::onUpdate()
     }
 }
 
-static glm::vec2 getScreenSize(SDL_Renderer* renderer)
+static SDL_FRect getScreenSize(SDL_Renderer* renderer)
 {
     int w, h;
     SDL_GetRenderOutputSize(renderer, &w, &h);
-    return {w, h};
+    return {0.0f, 0.0f, static_cast<float>(w), static_cast<float>(h)};
 }
+
+struct Transformation
+{
+    glm::vec2 scale;
+    glm::vec2 translation;
+};
 
 void App::onRender()
 {
-    glm::vec2 screen = getScreenSize(_renderer);
+    auto screen = getScreenSize(_renderer);
 
     /* Clear screen */
     SDL_SetRenderDrawColor(_renderer, std::round(COLOR_BACKGROUND.r * 255), std::round(COLOR_BACKGROUND.g * 255), std::round(COLOR_BACKGROUND.b * 255), 0xFF);
@@ -462,38 +468,59 @@ void App::onRender()
 
     /* Determine gameScreen geometry */
     SDL_FRect gameScreen;
-    if (screen.x / screen.y >= ASPECT_RATIO)
+    if (screen.w / screen.h >= ASPECT_RATIO)
     {
-        gameScreen.h = screen.y * 0.9f;
+        gameScreen.h = screen.h * 0.9f;
         gameScreen.w = gameScreen.h * ASPECT_RATIO;
     }
     else
     {
-        gameScreen.w = screen.x * 0.9f;
+        gameScreen.w = screen.w * 0.9f;
         gameScreen.h = gameScreen.w / ASPECT_RATIO;
     }
-    gameScreen.x = (screen.x - gameScreen.w) / 2.0f;
-    gameScreen.y = (screen.y - gameScreen.h) / 2.0f;
+    gameScreen.x = (screen.w - gameScreen.w) / 2.0f;
+    gameScreen.y = (screen.h - gameScreen.h) / 2.0f;
 
-    auto drawRect = [this, screen, gameScreen](glm::vec2 p, glm::vec2 s, glm::vec3 c)
+    SDL_SetRenderDrawColor(_renderer, 
+                           std::round(COLOR_GAMESCREEN.r),
+                           std::round(COLOR_GAMESCREEN.g),
+                           std::round(COLOR_GAMESCREEN.b),
+                           0xFF);
+    SDL_RenderFillRect(_renderer, &gameScreen);
+
+    SDL_Rect clipRect;
+    clipRect.x = gameScreen.x;
+    clipRect.y = gameScreen.y;
+    clipRect.w = gameScreen.w;
+    clipRect.h = gameScreen.h;
+    SDL_SetRenderClipRect(_renderer, &clipRect);
+
+    Transformation screenT;
+    screenT.scale.x = screen.w / ASPECT_RATIO;  /* width = 1.77 */
+    screenT.scale.y = screen.h;                 /* height = 1.0 */
+    screenT.translation.x = screen.w / 2.0f;    /* origin at middle of screen */
+    screenT.translation.y = screen.h / 2.0f;    /* origin at middle of screen */
+
+    Transformation gameT;
+    gameT.scale.x = gameScreen.w / screen.w;
+    gameT.scale.y = gameScreen.h / screen.h;
+    gameT.translation.x = gameScreen.x;
+    gameT.translation.y = gameScreen.y;
+
+    auto drawRect = [this, screenT, gameT](glm::vec2 p, glm::vec2 s, glm::vec3 c)
     {
         SDL_SetRenderDrawColor(_renderer, std::round(c.r * 255), std::round(c.g * 255), std::round(c.b * 255), 0xFF);
 
-        float scaleX = screen.x / ASPECT_RATIO;
-        float scaleY = screen.y;
-
         SDL_FRect rc;
-        rc.x = (scaleX * p.x) + (screen.x / 2.0f);
-        rc.y = (scaleY * p.y) + (screen.y / 2.0f);
-        rc.w = scaleX * s.x;
-        rc.h = scaleY * s.y;
+        rc.x = (p.x * screenT.scale.x) + screenT.translation.x;
+        rc.y = (p.y * screenT.scale.y) + screenT.translation.y;
+        rc.w = s.x * screenT.scale.x;
+        rc.h = s.y * screenT.scale.y;
 
-        scaleX = gameScreen.w / screen.x;
-        scaleY = gameScreen.h / screen.y;
-        rc.x = (scaleX * rc.x) + gameScreen.x;
-        rc.y = (scaleY * rc.y) + gameScreen.y;
-        rc.w *= scaleX;
-        rc.h *= scaleY;
+        rc.x = (rc.x * gameT.scale.x) + gameT.translation.x;
+        rc.y = (rc.y * gameT.scale.y) + gameT.translation.y;
+        rc.w *= gameT.scale.x;
+        rc.h *= gameT.scale.y;
 
         SDL_RenderFillRect(_renderer, &rc);
 
