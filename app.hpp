@@ -52,13 +52,16 @@ struct Entity
 class App
 {
 public:
-    static constexpr auto ASPECT_RATIO = 1.77; /* 16/9 */
-    static constexpr auto BALL_SPEED = 0.5f;
+    static constexpr auto GAME_WIDTH = 1.77f; /* 16:9 screen ratio */
+    static constexpr auto GAME_HEIGHT = 1.0f;
+    static constexpr auto GAME_SCALE = 0.95f;
+    static constexpr auto BALL_SPEED = 0.75f;
     static constexpr auto FPS = 60;
-    static constexpr auto PADDLE_SPEED = 0.4f;
+    static constexpr auto PADDLE_SPEED = BALL_SPEED*0.8f;
     static constexpr auto SCREEN_HEIGHT = 540;
     static constexpr auto SCREEN_WIDTH = 960;
     static constexpr auto dT = 1.0f / FPS;
+    static constexpr auto SCORE_SIZE = 0.02f;
     static constexpr glm::vec3 COLOR_BACKGROUND = { 0.39f, 0.58f, 0.93f };
     static constexpr glm::vec3 COLOR_DEBUGTEXT = { 1.0f, 1.0f, 0.25f };
     static constexpr glm::vec3 COLOR_GAMESCREEN = { 0.04f, 0.04f, 0.04f };

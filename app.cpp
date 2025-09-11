@@ -129,8 +129,8 @@ SDL_AppResult App::onInit(int argc, char** argv)
 
     /* Left wall */
     entity = std::make_unique<Entity>();
-    entity->size = {0.1f, 1.0f};
-    entity->pos = {-0.5f - (entity->size.x / 2.0f), 0.0f};
+    entity->size = {0.1f, GAME_HEIGHT + 0.2f};
+    entity->pos = {(-GAME_WIDTH / 2.0f) - (entity->size.x / 2.0f), 0.0f};
     entity->flags = Entity::PHYSICS;
     entity->color.r = 1.0f;
     entity->color.g = 0.5f;
@@ -149,8 +149,8 @@ SDL_AppResult App::onInit(int argc, char** argv)
 
     /* Right wall */
     entity = std::make_unique<Entity>();
-    entity->size = {0.1f, 1.0f};
-    entity->pos = {0.5f + (entity->size.x / 2.0f), 0.0f};
+    entity->size = {0.1f, GAME_HEIGHT + 0.2f};
+    entity->pos = {(GAME_WIDTH / 2.0f) + (entity->size.x / 2.0f), 0.0f};
     entity->flags = Entity::PHYSICS;
     entity->color.r = 1.0f;
     entity->color.g = 0.5f;
@@ -169,8 +169,8 @@ SDL_AppResult App::onInit(int argc, char** argv)
 
     /* Top wall */
     entity = std::make_unique<Entity>();
-    entity->size = {1.2f, 0.1f};
-    entity->pos = {0.0f, -0.5f - (entity->size.y / 2.0f)};
+    entity->size = {GAME_WIDTH, 0.1f};
+    entity->pos = {0, -0.5f - (entity->size.y / 2.0f)};
     entity->flags = Entity::PHYSICS;
     entity->color.r = 0.5f;
     entity->color.g = 1.0f;
@@ -187,7 +187,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
 
     /* Bottom wall */
     entity = std::make_unique<Entity>();
-    entity->size = {1.2f, 0.1f};
+    entity->size = {GAME_WIDTH, 0.1f};
     entity->pos = {0.0f, 0.5f + (entity->size.y / 2.0f)};
     entity->flags = Entity::PHYSICS;
     entity->color.r = 0.5f;
@@ -206,7 +206,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
     /* Ball */
     entity = std::make_unique<Entity>();
     entity->pos = {0.0f, 0.0f};
-    entity->size = {0.01f, 0.01f * ASPECT_RATIO};
+    entity->size = {0.05f, 0.05f};
     entity->flags = Entity::DISPLAY | Entity::PHYSICS;
     entity->color.r = 1.0f;
     entity->color.g = 1.0f;
@@ -218,7 +218,10 @@ SDL_AppResult App::onInit(int argc, char** argv)
         {
             if (ball.v.x == 0.0f && ball.v.y == 0.0f)
             {
-                ball.v = glm::vec2 {(_rng.fnext() * 2.0f) - 1.0f, (_rng.fnext() * 2.0f) - 1.0f};
+                do
+                {
+                    ball.v = glm::vec2 {(_rng.fnext() * 2.0f) - 1.0f, (_rng.fnext() * 2.0f) - 1.0f};
+                } while (ball.v.x < 0.01f);
                 playSound(_startSound);
             }
         }
@@ -234,8 +237,8 @@ SDL_AppResult App::onInit(int argc, char** argv)
 
     /* Paddles */
     entity = std::make_unique<Entity>();
-    entity->pos = {-0.4f, 0.0f};
-    entity->size = {0.02f, 0.1f};
+    entity->pos = {-(GAME_WIDTH / 2.0f) + 0.1f, 0.0f};
+    entity->size = {_ball->size.x, 0.2f};
     entity->flags = Entity::DISPLAY | Entity::PHYSICS;
     entity->color.r = 1.0f;
     entity->color.g = 0.75f;
@@ -272,11 +275,11 @@ SDL_AppResult App::onInit(int argc, char** argv)
     _entities.push_back(std::move(entity));
 
     entity = std::make_unique<Entity>();
-    entity->pos = {0.4f, 0.0f};
-    entity->size = {0.02f, 0.1f};
+    entity->pos = {(GAME_WIDTH / 2.0f) - 0.1f, 0.0f};
+    entity->size = {_ball->size.x, 0.2f};
     entity->flags = Entity::DISPLAY | Entity::PHYSICS;
-    entity->color.r = 0.5f;
-    entity->color.g = 0.75f;
+    entity->color.r = 1.0f;
+    entity->color.g = 0.5f;
     entity->color.b = 1.0f;
     entity->onCollision = [this, bounce](Entity& self, Entity& other, glm::vec2 pv)
     {
@@ -487,15 +490,15 @@ void App::onRender()
 
     /* Determine gameScreen geometry */
     SDL_FRect gameScreen;
-    if (screen.w / screen.h >= ASPECT_RATIO)
+    if (screen.w / screen.h >= (GAME_WIDTH / GAME_HEIGHT))
     {
-        gameScreen.h = screen.h * 0.9f;
-        gameScreen.w = gameScreen.h * ASPECT_RATIO;
+        gameScreen.h = screen.h * GAME_SCALE;
+        gameScreen.w = gameScreen.h * GAME_WIDTH;
     }
     else
     {
-        gameScreen.w = screen.w * 0.9f;
-        gameScreen.h = gameScreen.w / ASPECT_RATIO;
+        gameScreen.w = screen.w * GAME_SCALE;
+        gameScreen.h = gameScreen.w / GAME_WIDTH;
     }
     gameScreen.x = (screen.w - gameScreen.w) / 2.0f;
     gameScreen.y = (screen.h - gameScreen.h) / 2.0f;
@@ -511,10 +514,10 @@ void App::onRender()
     SDL_SetRenderClipRect(_renderer, &clipRect);
 
     Transformation screenT;
-    screenT.scale.x = screen.w / ASPECT_RATIO; /* width = 1.77 */
-    screenT.scale.y = screen.h;                /* height = 1.0 */
-    screenT.translation.x = screen.w / 2.0f;   /* origin at middle of screen */
-    screenT.translation.y = screen.h / 2.0f;   /* origin at middle of screen */
+    screenT.scale.x = screen.w / GAME_WIDTH; /* width = 1.77 */
+    screenT.scale.y = screen.h;              /* height = 1.0 */
+    screenT.translation.x = screen.w / 2.0f; /* origin at middle of screen */
+    screenT.translation.y = screen.h / 2.0f; /* origin at middle of screen */
 
     Transformation gameT;
     gameT.scale.x = gameScreen.w / screen.w;
@@ -564,14 +567,14 @@ void App::onRender()
             {
                 if (charData[j * 3 + i] != ' ')
                 {
-                    drawRect(glm::vec2 {i * 0.02f, j * 0.02f} + pos, {0.02f, 0.02f}, col);
+                    drawRect(glm::vec2 {i * SCORE_SIZE, j * SCORE_SIZE} + pos, {SCORE_SIZE, SCORE_SIZE}, col);
                 }
             }
         }
     };
 
     /* Score */
-    static const float scoreLocations[] = {-(ASPECT_RATIO / 2.0f) + (0.02f * 4.0f), (ASPECT_RATIO / 2.0f) - (0.02f * 14.0f)};
+    static const float scoreLocations[] = {-(GAME_WIDTH / 2.0f) + (SCORE_SIZE * 4.0f), (GAME_WIDTH / 2.0f) - (SCORE_SIZE * 8.0f)};
     for (int i = 0; i < 2; i++)
     {
         auto digit1 = (_scores[i] / 10) % 10;
@@ -581,7 +584,7 @@ void App::onRender()
         }
 
         auto digit2 = (_scores[i] % 10);
-        drawDigit(digit2 + '0', {scoreLocations[i] + 0.07f, -0.48f}, COLOR_SCORE);
+        drawDigit(digit2 + '0', {scoreLocations[i] + (SCORE_SIZE * 4.0f), -0.48f}, COLOR_SCORE);
     }
 
     /* Entities (they are just rectangles) */
@@ -589,7 +592,7 @@ void App::onRender()
     {
         if (entity->flags & Entity::DISPLAY)
         {
-            drawRect(entity->pos, entity->size, entity->color);
+            drawRect({entity->pos.x - (entity->size.x / 2.0f), entity->pos.y - (entity->size.y / 2.0f)}, entity->size, entity->color);
         }
     }
 
