@@ -38,7 +38,11 @@ file(GLOB SOURCE_FILES *.cpp *.c)
 file(GLOB HEADER_FILES *.hpp *.h)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
-target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
+
+if (NOT MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
+endif()
+
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 target_link_libraries(${PROJECT_NAME}
     PUBLIC
