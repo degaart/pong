@@ -458,6 +458,25 @@ struct Transformation
     glm::vec2 translation;
 };
 
+float transform(float scale, float translation, float x)
+{
+    return (x * scale) + translation;
+}
+
+glm::vec2 transform(const Transformation& t, glm::vec2 p)
+{
+    return {transform(t.scale.x, t.translation.x, p.x), transform(t.scale.y, t.translation.y, p.y)};
+}
+
+SDL_FRect transform(const Transformation& t, SDL_FRect rc)
+{
+    rc.x = transform(t.scale.x, t.translation.x, rc.x);
+    rc.y = transform(t.scale.y, t.translation.y, rc.y);
+    rc.w = rc.w * t.scale.x;
+    rc.h = rc.h * t.scale.y;
+    return rc;
+}
+
 void App::onRender()
 {
     auto screen = getScreenSize(_renderer);
@@ -481,25 +500,21 @@ void App::onRender()
     gameScreen.x = (screen.w - gameScreen.w) / 2.0f;
     gameScreen.y = (screen.h - gameScreen.h) / 2.0f;
 
-    SDL_SetRenderDrawColor(_renderer, 
-                           std::round(COLOR_GAMESCREEN.r),
-                           std::round(COLOR_GAMESCREEN.g),
-                           std::round(COLOR_GAMESCREEN.b),
-                           0xFF);
+    SDL_SetRenderDrawColor(_renderer, std::round(COLOR_GAMESCREEN.r), std::round(COLOR_GAMESCREEN.g), std::round(COLOR_GAMESCREEN.b), 0xFF);
     SDL_RenderFillRect(_renderer, &gameScreen);
 
     SDL_Rect clipRect;
-    clipRect.x = gameScreen.x;
-    clipRect.y = gameScreen.y;
-    clipRect.w = gameScreen.w;
-    clipRect.h = gameScreen.h;
+    clipRect.x = std::round(gameScreen.x);
+    clipRect.y = std::round(gameScreen.y);
+    clipRect.w = std::round(gameScreen.w);
+    clipRect.h = std::round(gameScreen.h);
     SDL_SetRenderClipRect(_renderer, &clipRect);
 
     Transformation screenT;
-    screenT.scale.x = screen.w / ASPECT_RATIO;  /* width = 1.77 */
-    screenT.scale.y = screen.h;                 /* height = 1.0 */
-    screenT.translation.x = screen.w / 2.0f;    /* origin at middle of screen */
-    screenT.translation.y = screen.h / 2.0f;    /* origin at middle of screen */
+    screenT.scale.x = screen.w / ASPECT_RATIO; /* width = 1.77 */
+    screenT.scale.y = screen.h;                /* height = 1.0 */
+    screenT.translation.x = screen.w / 2.0f;   /* origin at middle of screen */
+    screenT.translation.y = screen.h / 2.0f;   /* origin at middle of screen */
 
     Transformation gameT;
     gameT.scale.x = gameScreen.w / screen.w;
@@ -509,30 +524,59 @@ void App::onRender()
 
     auto drawRect = [this, screenT, gameT](glm::vec2 p, glm::vec2 s, glm::vec3 c)
     {
-        SDL_SetRenderDrawColor(_renderer, std::round(c.r * 255), std::round(c.g * 255), std::round(c.b * 255), 0xFF);
-
         SDL_FRect rc;
-        rc.x = (p.x * screenT.scale.x) + screenT.translation.x;
-        rc.y = (p.y * screenT.scale.y) + screenT.translation.y;
-        rc.w = s.x * screenT.scale.x;
-        rc.h = s.y * screenT.scale.y;
+        rc.x = p.x;
+        rc.y = p.y;
+        rc.w = s.x;
+        rc.h = s.y;
+        rc = transform(gameT, transform(screenT, rc));
 
-        rc.x = (rc.x * gameT.scale.x) + gameT.translation.x;
-        rc.y = (rc.y * gameT.scale.y) + gameT.translation.y;
-        rc.w *= gameT.scale.x;
-        rc.h *= gameT.scale.y;
-
+        SDL_SetRenderDrawColor(_renderer, std::round(c.r * 255), std::round(c.g * 255), std::round(c.b * 255), 0xFF);
         SDL_RenderFillRect(_renderer, &rc);
+    };
+    auto drawFrame = [this, screenT, gameT](glm::vec2 p, glm::vec2 s, glm::vec3 c)
+    {
+        SDL_FRect rc;
+        rc.x = p.x;
+        rc.y = p.y;
+        rc.w = s.x;
+        rc.h = s.y;
+        rc = transform(gameT, transform(screenT, rc));
 
-        SDL_SetRenderDrawColor(_renderer, 0xFF, 0, 0, 0xFF);
+        SDL_SetRenderDrawColor(_renderer, std::round(c.r * 255), std::round(c.g * 255), std::round(c.b * 255), 0xFF);
         SDL_RenderRect(_renderer, &rc);
+    };
+    auto drawLine = [this, screenT, gameT](glm::vec2 a, glm::vec2 b, glm::vec3 col)
+    {
+        a = transform(gameT, transform(screenT, a));
+        b = transform(gameT, transform(screenT, b));
+
+        SDL_SetRenderDrawColor(_renderer, std::round(col.r * 255.0f), std::round(col.g * 255.0f), std::round(col.b * 255.0f), 0xFF);
+        SDL_RenderLine(_renderer, a.x, a.y, b.x, b.y);
+    };
+    auto drawDigit = [this,drawRect](char digit, glm::vec2 pos, glm::vec3 col)
+    {
+        assert(digit >= '0' && digit <= '9');
+        const char* charData = FONT_DATA[digit - '0'];
+        for (int j = 0; j < 5; j++)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                if (charData[j * 3 + i] != ' ')
+                {
+                    drawRect(glm::vec2 {i * 0.02f, j * 0.02f} + pos, {0.02f, 0.02f}, col);
+                }
+            }
+        }
     };
 
     drawRect({-0.885f, -0.5f}, {0.125f, 0.125f}, COLOR_BALL);
     drawRect({-0.885f, 0.5f - 0.125f}, {0.125f, 0.125f}, COLOR_BALL);
     drawRect({0.885f - 0.125f, -0.5f}, {0.125f, 0.125f}, COLOR_BALL);
     drawRect({0.885f - 0.125f, 0.5f - 0.125f}, {0.125f, 0.125f}, COLOR_BALL);
-    drawRect({-0.125f / 2.0f, -0.125f / 2.0f}, {0.125f, 0.125f}, COLOR_BALL);
+    drawFrame({-0.125f / 2.0f, -0.125f / 2.0f}, {0.125f, 0.125f}, COLOR_BALL);
+    drawDigit('8', {0.0f, 0.0f}, COLOR_DEBUGTEXT);
+
 
     /* Debug text */
     auto debugText = fmt::format("fps={} {}", _fps, _debugText);
