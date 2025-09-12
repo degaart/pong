@@ -88,8 +88,6 @@ private:
     int _fps;
     int _scores[2];
     Entity* _ball;
-    Entity* _p1;
-    Entity* _p2;
     std::string _debugText;
     Rng _rng;
     Sfx _startSound;

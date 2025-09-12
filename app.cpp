@@ -55,8 +55,6 @@ App::App()
       _fps(0),
       _scores {0, 0},
       _ball(nullptr),
-      _p1(nullptr),
-      _p2(nullptr),
       _idle(false)
 
 {
@@ -273,7 +271,6 @@ SDL_AppResult App::onInit(int argc, char** argv)
         }
     };
     entity->name = "rightpaddle";
-    _p1 = entity.get();
     _entities.push_back(std::move(entity));
 
     entity = std::make_unique<Entity>();
@@ -319,7 +316,6 @@ SDL_AppResult App::onInit(int argc, char** argv)
         }
     };
     entity->name = "leftpaddle";
-    _p2 = entity.get();
     _entities.push_back(std::move(entity));
 
     for (auto& e : _entities)
