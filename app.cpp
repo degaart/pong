@@ -55,7 +55,9 @@ App::App()
       _fps(0),
       _scores {0, 0},
       _ball(nullptr),
-      _idle(false)
+      _idle(false),
+      _vSync(false)
+
 
 {
     memset(&_keyState, 0, sizeof(_keyState));
@@ -77,6 +79,7 @@ SDL_AppResult App::onInit(int argc, char** argv)
     {
         return SDL_APP_FAILURE;
     }
+    _vSync = SDL_SetRenderVSync(_renderer, 1);
 
     _startSound.load("start.ogg");
     _bounceSound.load("bounce.ogg");
@@ -379,7 +382,7 @@ SDL_AppResult App::onIterate()
         onUpdate();
         _lag -= dT;
     }
-    onRender();
+    onRender(_lag / dT);
 
     _frames++;
     _fpsTimer += elapsed;
@@ -390,11 +393,14 @@ SDL_AppResult App::onIterate()
         _frames = 0;
     }
 
-    auto endTime = SDL_GetTicks() / 1000.0;
-    if (endTime - beginTime < 1.0 / FPS)
+    if (!_vSync)
     {
-        auto delay = ((1.0 / FPS) - (endTime - beginTime)) * 1000;
-        SDL_Delay(static_cast<uint32_t>(delay));
+        auto endTime = SDL_GetTicks() / 1000.0;
+        if (endTime - beginTime < 1.0 / FPS)
+        {
+            auto delay = ((1.0 / FPS) - (endTime - beginTime)) * 1000;
+            SDL_Delay(static_cast<uint32_t>(delay));
+        }
     }
     _prevTime = beginTime;
 
@@ -480,7 +486,7 @@ SDL_FRect transform(const Transformation& t, SDL_FRect rc)
     return rc;
 }
 
-void App::onRender()
+void App::onRender(double lag)
 {
     auto screen = getScreenSize(_renderer);
 
@@ -628,7 +634,12 @@ void App::onRender()
     {
         if (entity->flags & Entity::DISPLAY)
         {
-            drawRect({entity->pos.x - (entity->size.x / 2.0f), entity->pos.y - (entity->size.y / 2.0f)}, entity->size, entity->color);
+            glm::vec2 pos = entity->pos;
+            if (entity->flags & Entity::PHYSICS)
+            {
+                pos += entity->v * static_cast<float>(_lag) * dT;
+            }
+            drawRect({pos.x - (entity->size.x / 2.0f), pos.y - (entity->size.y / 2.0f)}, entity->size, entity->color);
         }
     }
 

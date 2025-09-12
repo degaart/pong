@@ -94,10 +94,11 @@ private:
     Sfx _bounceSound;
     Sfx _loseSound;
     bool _idle;
+    bool _vSync;
 
     void reset();
     void onUpdate();
-    void onRender();
+    void onRender(double lag);
     void playSound(const Sfx& sound);
     static std::vector<unsigned char> loadFile(const char* filename);
 };
