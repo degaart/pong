@@ -56,7 +56,8 @@ App::App()
       _scores {0, 0},
       _ball(nullptr),
       _p1(nullptr),
-      _p2(nullptr)
+      _p2(nullptr),
+      _idle(false)
 
 {
     memset(&_keyState, 0, sizeof(_keyState));
@@ -67,6 +68,7 @@ void App::reset()
 {
     _ball->pos.x = _ball->pos.y = 0.0f;
     _ball->v.x = _ball->v.y = 0.0f;
+    _idle = true;
 }
 
 SDL_AppResult App::onInit(int argc, char** argv)
@@ -91,14 +93,13 @@ SDL_AppResult App::onInit(int argc, char** argv)
     if (!_audioStream)
     {
         fmt::println(stderr, "Failed to create audio stream");
-        abort();
+        return SDL_APP_FAILURE;
     }
     if (!SDL_ResumeAudioStreamDevice(_audioStream))
     {
         fmt::println(stderr, "Failed to resume audio stream playback");
-        abort();
+        return SDL_APP_FAILURE;
     }
-
     /* Separator lines */
     for (int i = 0; i < 21; i++)
     {
@@ -216,13 +217,14 @@ SDL_AppResult App::onInit(int argc, char** argv)
     {
         if (keyState.space)
         {
-            if (ball.v.x == 0.0f && ball.v.y == 0.0f)
+            if (_idle)
             {
                 do
                 {
                     ball.v = glm::vec2 {(_rng.fnext() * 2.0f) - 1.0f, (_rng.fnext() * 2.0f) - 1.0f};
                 } while (ball.v.x < 0.01f);
                 playSound(_startSound);
+                _idle = false;
             }
         }
 
@@ -324,6 +326,8 @@ SDL_AppResult App::onInit(int argc, char** argv)
     {
         e->origColor = e->color;
     }
+
+    _idle = true;
 
     return SDL_APP_CONTINUE;
 }
@@ -572,6 +576,42 @@ void App::onRender()
             }
         }
     };
+    auto drawChar = [this, drawRect](char ch, float size, glm::vec2 pos, glm::vec3 col)
+    {
+        const char* charData = nullptr;
+        for (int i = 0; i < sizeof(FONT_LOOKUP_TABLE) / sizeof(FONT_LOOKUP_TABLE[0]); i++)
+        {
+            if (FONT_LOOKUP_TABLE[i] == ch)
+            {
+                charData = FONT_DATA[i];
+                break;
+            }
+        }
+
+        if (!charData)
+        {
+            return;
+        }
+
+        for (int j = 0; j < 5; j++)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                if (charData[j * 3 + i] != ' ')
+                {
+                    drawRect(glm::vec2 {i * size, j * size} + pos, {size, size}, col);
+                }
+            }
+        }
+    };
+    auto drawText = [this, drawChar](const char* s, float size, glm::vec2 pos, glm::vec3 col)
+    {
+        for (const char* p = s; *p; p++)
+        {
+            drawChar(*p, size, pos, col);
+            pos.x += size * 4.0f;
+        }
+    };
 
     /* Score */
     static const float scoreLocations[] = {-(GAME_WIDTH / 2.0f) + (SCORE_SIZE * 4.0f), (GAME_WIDTH / 2.0f) - (SCORE_SIZE * 8.0f)};
@@ -596,6 +636,12 @@ void App::onRender()
         }
     }
 
+    /* Start text */
+    if (_idle)
+    {
+        drawText("PRESS START", 0.01f, {-0.2f, 0.1f}, COLOR_SCORE);
+    }
+
     /* Debug text */
     auto debugText = fmt::format("fps={} {}", _fps, _debugText);
     SDL_SetRenderClipRect(_renderer, nullptr);
@@ -609,5 +655,31 @@ void App::onRender()
 void App::playSound(const Sfx& sound)
 {
     SDL_PutAudioStreamData(_audioStream, sound.samples(), sound.size());
+}
+
+std::vector<unsigned char> App::loadFile(const char* filename)
+{
+    FILE* f = fopen(filename, "rb");
+    if (!f)
+    {
+        abort();
+    }
+
+    fseek(f, 0, SEEK_END);
+    auto size = ftell(f);
+    if (size < 0)
+    {
+        abort();
+    }
+    fseek(f, 0, SEEK_SET);
+
+    std::vector<unsigned char> buffer(size);
+    auto readBytes = fread(buffer.data(), 1, size, f);
+    if (readBytes < size)
+    {
+        abort();
+    }
+    fclose(f);
+    return buffer;
 }
 

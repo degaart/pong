@@ -95,10 +95,12 @@ private:
     Sfx _startSound;
     Sfx _bounceSound;
     Sfx _loseSound;
+    bool _idle;
 
     void reset();
     void onUpdate();
     void onRender();
     void playSound(const Sfx& sound);
+    static std::vector<unsigned char> loadFile(const char* filename);
 };
 
