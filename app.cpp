@@ -94,12 +94,13 @@ SDL_AppResult App::onInit(int argc, char** argv)
     if (!_audioStream)
     {
         fmt::println(stderr, "Failed to create audio stream");
-        return SDL_APP_FAILURE;
     }
-    if (!SDL_ResumeAudioStreamDevice(_audioStream))
+    else
     {
-        fmt::println(stderr, "Failed to resume audio stream playback");
-        return SDL_APP_FAILURE;
+        if (!SDL_ResumeAudioStreamDevice(_audioStream))
+        {
+            fmt::println(stderr, "Failed to resume audio stream playback");
+        }
     }
     /* Separator lines */
     for (int i = 0; i < 21; i++)
@@ -661,7 +662,10 @@ void App::onRender(double lag)
 
 void App::playSound(const Sfx& sound)
 {
-    SDL_PutAudioStreamData(_audioStream, sound.samples(), sound.size());
+    if (_audioStream)
+    {
+        SDL_PutAudioStreamData(_audioStream, sound.samples(), sound.size());
+    }
 }
 
 std::vector<unsigned char> App::loadFile(const char* filename)

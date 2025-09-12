@@ -1,0 +1,8 @@
+To build with emscripten
+========================
+
+- install emscripten
+- activate emscripten environment
+- emcmake cmake --preset emscripten
+- copy build/{game.html,game.js,game.wasm} into webserver's root
+

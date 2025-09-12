@@ -4,6 +4,12 @@ project(game)
 # use current timestamp when extracting archives with ExternalProject or FetchContent
 cmake_policy(SET CMP0135 NEW)
 
+# emscripten
+if (EMSCRIPTEN)
+    set(CMAKE_EXECUTABLE_SUFFIX .html)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/template.html")
+endif()
+
 # needed for SDL3
 set(BUILD_SHARED_LIBS OFF)
 
@@ -50,6 +56,4 @@ target_link_libraries(${PROJECT_NAME}
         SDL3::SDL3
         glm::glm
 )
-
-
 
